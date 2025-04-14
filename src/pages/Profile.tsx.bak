@@ -1,0 +1,820 @@
+import React, { useState, useEffect } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { 
+  User, 
+  Mail, 
+  Phone,
+  Key, 
+  Loader2, 
+  CheckCircle, 
+  AlertCircle,
+  Camera,
+  X,
+  BadgeCheck,
+  ArrowLeft,
+  Shield,
+  BookOpen,
+  Calendar,
+  Clock,
+  PlusCircle,
+  BookText,
+  Pencil,
+  Trash2
+} from 'lucide-react'
+import { supabase } from '../lib/supabase'
+
+interface UserProfile {
+  id: string
+  role: 'student' | 'teacher' | 'parent'
+  identifier_code: string
+  name?: string
+  avatar_url?: string
+  phone?: string
+  created_at?: string
+  updated_at?: string
+}
+
+interface Course {
+  id: string
+  title: string
+  description: string
+  created_at: string
+  teacher_id: string
+  status: 'draft' | 'published'
+}
+
+export default function Profile() {
+  const navigate = useNavigate()
+  const [loading, setLoading] = useState(true)
+  const [updating, setUpdating] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [email, setEmail] = useState('')
+  const [formData, setFormData] = useState({
+    full_name: '',
+    phone: '',
+  })
+  const [courses, setCourses] = useState<Course[]>([])
+  const [courseForm, setCourseForm] = useState({
+    title: '',
+    description: ''
+  })
+  const [showCourseModal, setShowCourseModal] = useState(false)
+  const [courseLoading, setCourseLoading] = useState(false)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string>('')
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'courses'>('profile')
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        navigate('/login', { replace: true })
+      }
+    })
+
+    fetchProfile()
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (userProfile?.role === 'teacher') {
+      fetchTeacherCourses()
+    }
+  }, [userProfile])
+
+  const fetchTeacherCourses = async () => {
+    if (!userProfile?.id) return
+    
+    try {
+      setCourseLoading(true)
+      const { data, error } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('teacher_id', userProfile.id)
+        .order('created_at', { ascending: false })
+      
+      if (error) throw error
+      setCourses(data || [])
+    } catch (err) {
+      console.error('Error fetching courses:', err)
+      setError('Failed to load courses')
+    } finally {
+      setCourseLoading(false)
+    }
+  }
+
+  const createCourse = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!userProfile?.id) return
+    
+    try {
+      setCourseLoading(true)
+      setError('')
+      setSuccess('')
+      
+      const { data, error } = await supabase
+        .from('courses')
+        .insert([
+          {
+            title: courseForm.title,
+            description: courseForm.description,
+            teacher_id: userProfile.id,
+            status: 'draft'
+          }
+        ])
+        .select()
+      
+      if (error) throw error
+      
+      setCourses([...(data || []), ...courses])
+      setCourseForm({ title: '', description: '' })
+      setShowCourseModal(false)
+      setSuccess('Course created successfully')
+      fetchTeacherCourses()
+    } catch (err) {
+      console.error('Error creating course:', err)
+      setError(err instanceof Error ? err.message : 'Failed to create course')
+    } finally {
+      setCourseLoading(false)
+    }
+  }
+
+  const deleteCourse = async (courseId: string) => {
+    try {
+      setCourseLoading(true)
+      setError('')
+      setSuccess('')
+      
+      const { error } = await supabase
+        .from('courses')
+        .delete()
+        .eq('id', courseId)
+      
+      if (error) throw error
+      
+      setCourses(courses.filter(course => course.id !== courseId))
+      setSuccess('Course deleted successfully')
+    } catch (err) {
+      console.error('Error deleting course:', err)
+      setError(err instanceof Error ? err.message : 'Failed to delete course')
+    } finally {
+      setCourseLoading(false)
+    }
+  }
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true)
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        navigate('/login', { replace: true })
+        return
+      }
+
+      setEmail(user.email || '')
+
+      // Fetch profile from users_view instead of users table
+      const { data, error } = await supabase
+        .from('users_view')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (error) throw error
+
+      // Get avatar URL from users table since it's not in the view
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('avatar_url, phone')
+        .eq('id', user.id)
+        .single()
+
+      if (userError) {
+        console.error('Error fetching user avatar:', userError)
+      }
+
+      const profileData = {
+        ...data,
+        avatar_url: userData?.avatar_url,
+        phone: userData?.phone
+      }
+
+      setUserProfile(profileData)
+      setFormData({
+        full_name: data.name || '',
+        phone: profileData.phone || '',
+      })
+
+      if (profileData.avatar_url) {
+        setAvatarPreview(profileData.avatar_url)
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err)
+      setError('Failed to load profile')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setAvatarFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const uploadAvatar = async (userId: string): Promise<string | null> => {
+    if (!avatarFile) return null
+
+    try {
+      const fileExt = avatarFile.name.split('.').pop()
+      const fileName = `${userId}-${Math.random()}.${fileExt}`
+      const filePath = `avatars/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, avatarFile)
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath)
+
+      return publicUrl
+    } catch (err) {
+      console.error('Error uploading avatar:', err)
+      throw new Error('Failed to upload avatar')
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      setError('')
+      setSuccess('')
+      setUpdating(true)
+
+      if (!userProfile?.id) throw new Error('No user profile found')
+
+      // Upload new avatar if selected
+      let avatarUrl = userProfile.avatar_url
+      if (avatarFile) {
+        avatarUrl = await uploadAvatar(userProfile.id)
+      }
+
+      // Update profile - note we're updating the users table, not the view
+      const { error } = await supabase
+        .from('users')
+        .update({
+          name: formData.full_name,
+          phone: formData.phone,
+          avatar_url: avatarUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userProfile.id)
+
+      if (error) throw error
+
+      setSuccess('Profile updated successfully')
+      fetchProfile() // Refresh profile data
+    } catch (err) {
+      console.error('Error updating profile:', err)
+      setError(err instanceof Error ? err.message : 'Failed to update profile')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A'
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 border-2 border-emerald-600/30 border-t-emerald-600 rounded-full animate-spin" />
+          <span className="text-sm text-emerald-900">Loading profile...</span>
+        </div>
+      </div>
+    )
+  }  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center">
+            <Link to="/dashboard" className="p-2 rounded-lg text-gray-600 hover:bg-gray-100">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <h1 className="ml-4 text-xl font-semibold text-gray-900">My Profile</h1>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Profile Card */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-emerald-500 to-teal-500 h-32 relative">
+                {avatarPreview && (
+                  <div className="absolute left-1/2 transform -translate-x-1/2 -bottom-16">
+                    <div className="relative">
+                      <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white bg-white">
+                        <img 
+                          src={avatarPreview} 
+                          alt="Profile" 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <label className="absolute bottom-1 right-1 p-1.5 bg-emerald-600 rounded-full cursor-pointer hover:bg-emerald-700 transition-colors shadow-md">
+                        <Camera className="w-4 h-4 text-white" />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarChange}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                )}
+                {!avatarPreview && (
+                  <div className="absolute left-1/2 transform -translate-x-1/2 -bottom-16">
+                    <div className="relative">
+                      <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white bg-white flex items-center justify-center">
+                        <User className="w-16 h-16 text-gray-300" />
+                      </div>
+                      <label className="absolute bottom-1 right-1 p-1.5 bg-emerald-600 rounded-full cursor-pointer hover:bg-emerald-700 transition-colors shadow-md">
+                        <Camera className="w-4 h-4 text-white" />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarChange}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="pt-20 pb-6 px-6">
+                <div className="text-center">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {userProfile?.name || 'Your Name'}
+                  </h2>
+                  <div className="mt-1 flex justify-center">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                      {userProfile?.role.charAt(0).toUpperCase() + userProfile?.role.slice(1)}
+                      <BadgeCheck className="w-4 h-4 ml-1" />
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-500">
+                    {email}
+                  </p>
+                </div>
+
+                <div className="mt-6 space-y-4">
+                  <div className="flex items-center text-sm">
+                    <BadgeCheck className="w-5 h-5 text-emerald-500 mr-3" />
+                    <div>
+                      <span className="text-gray-500">ID: </span>
+                      <span className="font-medium text-gray-900">{userProfile?.identifier_code}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center text-sm">
+                    <Phone className="w-5 h-5 text-emerald-500 mr-3" />
+                    <div>
+                      <span className="text-gray-500">Phone: </span>
+                      <span className="font-medium text-gray-900">{userProfile?.phone || 'Not set'}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center text-sm">
+                    <Calendar className="w-5 h-5 text-emerald-500 mr-3" />
+                    <div>
+                      <span className="text-gray-500">Joined: </span>
+                      <span className="font-medium text-gray-900">{formatDate(userProfile?.created_at)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Quick Stats */}
+            <div className="mt-6 grid grid-cols-2 gap-4">
+              <div className="bg-white rounded-xl shadow-sm p-4">
+                <div className="flex items-center">
+                  <div className="p-2 rounded-lg bg-blue-50">
+                    <BookOpen className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-xs text-gray-500">Courses</p>
+                    <p className="text-lg font-semibold">5</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-xl shadow-sm p-4">
+                <div className="flex items-center">
+                  <div className="p-2 rounded-lg bg-amber-50">
+                    <Clock className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-xs text-gray-500">Hours</p>
+                    <p className="text-lg font-semibold">24</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Edit Form */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              {/* Tabs */}
+              <div className="border-b">
+                <div className="flex">
+                  <button
+                    onClick={() => setActiveTab('profile')}
+                    className={`px-6 py-3 text-sm font-medium ${
+                      activeTab === 'profile'
+                        ? 'border-b-2 border-emerald-500 text-emerald-600'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Profile Information
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('security')}
+                    className={`px-6 py-3 text-sm font-medium ${
+                      activeTab === 'security'
+                        ? 'border-b-2 border-emerald-500 text-emerald-600'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Security
+                  </button>
+                  {userProfile?.role === 'teacher' && (
+                    <button
+                      onClick={() => setActiveTab('courses')}
+                      className={`px-6 py-3 text-sm font-medium ${
+                        activeTab === 'courses'
+                          ? 'border-b-2 border-emerald-500 text-emerald-600'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      My Courses
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-6">
+                {error && (
+                  <div className="mb-6 p-3 flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-lg">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {error}
+                  </div>
+                )}
+
+                {success && (
+                  <div className="mb-6 p-3 flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 rounded-lg">
+                    <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                    {success}
+                  </div>
+                )}
+
+                {activeTab === 'profile' && (
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">
+                        Email address
+                      </label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                          type="email"
+                          value={email}
+                          className="block w-full pl-10 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg bg-gray-50"
+                          disabled
+                        />
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500">Your email address is verified and cannot be changed</p>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">
+                        Full name
+                      </label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                          type="text"
+                          value={formData.full_name}
+                          onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                          className="block w-full pl-10 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                          placeholder="Enter your full name"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">
+                        Phone number
+                      </label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          className="block w-full pl-10 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                          placeholder="Enter your phone number"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4">
+                      <button
+                        type="button"
+                        onClick={() => navigate('/dashboard')}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={updating}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:bg-emerald-400 transition-colors"
+                      >
+                        {updating ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Updating...</span>
+                          </>
+                        ) : (
+                          <span>Save changes</span>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {activeTab === 'courses' && userProfile?.role === 'teacher' && (
+                  <div className="space-y-6">
+                    <div className="bg-blue-50 rounded-lg p-4 flex items-start">
+                      <BookText className="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" />
+                      <div>
+                        <h3 className="text-sm font-medium text-blue-800">Course Management</h3>
+                        <p className="mt-1 text-sm text-blue-700">
+                          Create and manage your courses here. Only teachers can create courses.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-medium text-gray-900">Your Courses</h3>
+                      <button
+                        onClick={() => setShowCourseModal(true)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                        <span>Create Course</span>
+                      </button>
+                    </div>
+
+                    {courseLoading ? (
+                      <div className="flex justify-center py-8">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 border-2 border-emerald-600/30 border-t-emerald-600 rounded-full animate-spin" />
+                          <span className="text-sm text-emerald-900">Loading courses...</span>
+                        </div>
+                      </div>
+                    ) : courses.length === 0 ? (
+                      <div className="text-center py-8 bg-gray-50 rounded-lg">
+                        <BookOpen className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                        <h3 className="text-sm font-medium text-gray-900 mb-1">No courses yet</h3>
+                        <p className="text-sm text-gray-500 mb-4">Get started by creating your first course</p>
+                        <button
+                          onClick={() => setShowCourseModal(true)}
+                          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+                        >
+                          <PlusCircle className="w-4 h-4" />
+                          <span>Create Course</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4 mt-4">
+                        {courses.map((course) => (
+                          <div key={course.id} className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow">
+                            <div className="flex justify-between">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-lg font-medium text-gray-900">{course.title}</h4>
+                                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${course.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                                    {course.status === 'published' ? 'Published' : 'Draft'}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-500 mt-1">{course.description}</p>
+                                <p className="text-xs text-gray-400 mt-2">Created: {new Date(course.created_at).toLocaleDateString()}</p>
+                              </div>
+                              <div className="flex gap-2">
+                                <button className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors">
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <button 
+                                  onClick={() => deleteCourse(course.id)}
+                                  className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'security' && (
+                  <div className="space-y-6">
+                    <div className="bg-blue-50 rounded-lg p-4 flex items-start">
+                      <Shield className="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" />
+                      <div>
+                        <h3 className="text-sm font-medium text-blue-800">Security settings</h3>
+                        <p className="mt-1 text-sm text-blue-700">
+                          Manage your password and account security settings here.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-b py-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900">Change password</h3>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Update your password to keep your account secure
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100"
+                          onClick={() => navigate('/reset-password')}
+                        >
+                          Change
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="border-b py-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900">Two-factor authentication</h3>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Add an extra layer of security to your account
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                        >
+                          Enable
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="py-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900">Session management</h3>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Manage your active sessions and sign out from other devices
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                        >
+                          Manage
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Course Creation Modal */}
+    {showCourseModal && (
+      <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+          {/* Background overlay */}
+          <div 
+            className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+            aria-hidden="true"
+            onClick={() => setShowCourseModal(false)}
+          ></div>
+
+          {/* Modal positioning trick */}
+          <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+          
+          {/* Modal panel */}
+          <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div className="sm:flex sm:items-start">
+                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">Create New Course</h3>
+                    <button
+                      onClick={() => setShowCourseModal(false)}
+                      className="text-gray-400 hover:text-gray-500"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  
+                  <form onSubmit={createCourse} className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">
+                        Course Title
+                      </label>
+                      <input
+                        type="text"
+                        value={courseForm.title}
+                        onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
+                        className="block w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        placeholder="Enter course title"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">
+                        Course Description
+                      </label>
+                      <textarea
+                        value={courseForm.description}
+                        onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })}
+                        className="block w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        placeholder="Enter course description"
+                        rows={4}
+                        required
+                      />
+                    </div>
+                    <div className="flex justify-end gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowCourseModal(false)}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={courseLoading}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:bg-emerald-400 transition-colors"
+                      >
+                        {courseLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Creating...</span>
+                          </>
+                        ) : (
+                          <span>Create Course</span>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+  )
+}
