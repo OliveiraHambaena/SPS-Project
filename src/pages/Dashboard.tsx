@@ -20,27 +20,6 @@ import {
   PlayCircle,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
-import OpenAI from "openai";
-
-// Initialize OpenAI API
-const openai = new OpenAI({
-  apiKey: process.env.REACT_APP_OPENAI_API_KEY, // Securely access the API key
-});
-
-async function testOpenAI() {
-  try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      store: true,
-      messages: [{ role: "user", content: "Hello, how are you?" }],
-    });
-    console.log(completion.choices[0].message.content);
-  } catch (error) {
-    console.error("Error:", error);
-  }
-}
-
-testOpenAI();
 
 interface UserData {
   id: string;
@@ -239,7 +218,7 @@ export default function Dashboard() {
     setIsChatOpen(!isChatOpen);
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!messageInput.trim()) return;
@@ -255,15 +234,40 @@ export default function Dashboard() {
     setChatMessages((prev) => [...prev, userMessage]);
     setMessageInput("");
 
-    try {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        store: true,
-        messages: [{ role: "user", content: messageInput }],
-      });
-      console.log(completion); // Log the response for debugging
+    // Simulate bot response
+    setTimeout(() => {
+      let botResponse = "";
 
-      const botResponse = completion.choices[0]?.message?.content || "I'm sorry, I couldn't understand that.";
+      const lowercaseInput = messageInput.toLowerCase();
+
+      if (lowercaseInput.includes("course") && lowercaseInput.includes("enroll")) {
+        botResponse =
+          "To enroll in a course, simply click on the course card and then press the 'Enroll Now' button on the course details page!";
+      } else if (lowercaseInput.includes("progress")) {
+        botResponse =
+          "Your course progress can be found on each course card. The green progress bar shows how far you've come!";
+      } else if (
+        lowercaseInput.includes("assignment") ||
+        lowercaseInput.includes("homework")
+      ) {
+        botResponse =
+          "You can find all your assignments in the 'Assignments' section of each course. Click on a course and scroll down to see them.";
+      } else if (
+        lowercaseInput.includes("profile") ||
+        lowercaseInput.includes("account")
+      ) {
+        botResponse =
+          "You can access your profile by clicking on your profile picture in the top right corner!";
+      } else if (
+        lowercaseInput.includes("help") ||
+        lowercaseInput.includes("support")
+      ) {
+        botResponse =
+          "For additional support, please visit our Help Center or contact support@elearningsystem.com";
+      } else {
+        botResponse =
+          "I'm here to help with your e-learning journey! You can ask me about courses, assignments, your progress, or how to use different features of the platform.";
+      }
 
       const botMessage: ChatMessage = {
         id: Date.now().toString(),
@@ -273,16 +277,7 @@ export default function Dashboard() {
       };
 
       setChatMessages((prev) => [...prev, botMessage]);
-    } catch (error) {
-      console.error("OpenAI API Error:", error); // Log the error
-      const errorMessage: ChatMessage = {
-        id: Date.now().toString(),
-        text: "Sorry, I couldn't process your request at the moment. Please try again later.",
-        sender: "bot",
-        timestamp: new Date(),
-      };
-      setChatMessages((prev) => [...prev, errorMessage]);
-    }
+    }, 1000);
   };
 
   if (loading) {
