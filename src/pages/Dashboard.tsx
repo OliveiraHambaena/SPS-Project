@@ -24,8 +24,23 @@ import OpenAI from "openai";
 
 // Initialize OpenAI API
 const openai = new OpenAI({
-  apiKey: "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", // Replace with your API key
+  apiKey: process.env.REACT_APP_OPENAI_API_KEY, // Securely access the API key
 });
+
+async function testOpenAI() {
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      store: true,
+      messages: [{ role: "user", content: "Hello, how are you?" }],
+    });
+    console.log(completion.choices[0].message.content);
+  } catch (error) {
+    console.error("Error:", error);
+  }
+}
+
+testOpenAI();
 
 interface UserData {
   id: string;
@@ -241,14 +256,12 @@ export default function Dashboard() {
     setMessageInput("");
 
     try {
-      // Call OpenAI API for bot response
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini", // Use the appropriate model
+        model: "gpt-4o-mini",
         store: true,
-        messages: [
-          { role: "user", content: messageInput },
-        ],
+        messages: [{ role: "user", content: messageInput }],
       });
+      console.log(completion); // Log the response for debugging
 
       const botResponse = completion.choices[0]?.message?.content || "I'm sorry, I couldn't understand that.";
 
@@ -261,7 +274,7 @@ export default function Dashboard() {
 
       setChatMessages((prev) => [...prev, botMessage]);
     } catch (error) {
-      console.error("Error fetching AI response:", error);
+      console.error("OpenAI API Error:", error); // Log the error
       const errorMessage: ChatMessage = {
         id: Date.now().toString(),
         text: "Sorry, I couldn't process your request at the moment. Please try again later.",
