@@ -131,7 +131,7 @@ export default function Dashboard() {
         title: 'Advanced React Patterns',
         description: 'Master complex React concepts and patterns',
         image_url: 'https://images.unsplash.com/photo-1633356122102-3fe601e05bd2',
-        instructor: 'olly',
+        instructor: 'olly hambaena',
         progress: 45,
         total_modules: 8,
         completed_modules: 3
