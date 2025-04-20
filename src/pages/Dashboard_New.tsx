@@ -263,29 +263,29 @@ export default function Dashboard() {
         <nav className="flex-1 p-4 space-y-2">
           <a href="#" className="flex items-center px-4 py-2.5 text-gray-700 bg-emerald-50 rounded-xl">
             <LayoutDashboard className="w-5 h-5" />
-            <span className="ml-3">Dashboard</span>
+            <span className="ml-3">Dashboard1</span>
           </a>
           <a href="#" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors duration-200">
             <BookOpen className="w-5 h-5" />
-            <span className="ml-3">My Courses</span>
+            <span className="ml-3">My Courses2</span>
           </a>
           {userData?.role === 'teacher' && (
             <a href="#" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors duration-200">
               <Users className="w-5 h-5" />
-              <span className="ml-3">Students</span>
+              <span className="ml-3">Students3</span>
             </a>
           )}
           <a href="#" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors duration-200">
             <Calendar className="w-5 h-5" />
-            <span className="ml-3">Schedule</span>
+            <span className="ml-3">Schedule4</span>
           </a>
           <a href="#" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors duration-200">
             <Award className="w-5 h-5" />
-            <span className="ml-3">Certificates</span>
+            <span className="ml-3">Certificates5</span>
           </a>
           <a href="#" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors duration-200">
             <Settings className="w-5 h-5" />
-            <span className="ml-3">Settings</span>
+            <span className="ml-3">Settings6</span>
           </a>
         </nav>
 
@@ -303,7 +303,7 @@ export default function Dashboard() {
             className="flex items-center w-full px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors duration-200"
           >
             <LogOut className="w-5 h-5" />
-            <span className="ml-3">Logout Olly</span>
+            <span className="ml-3">Logout</span>
           </button>
         </div>
       </div>
