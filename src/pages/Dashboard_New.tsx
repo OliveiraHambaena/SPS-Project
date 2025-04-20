@@ -387,83 +387,66 @@ export default function Dashboard() {
             <p className="opacity-90 mb-4">Continue your learning journey today.</p>
             <div className="flex items-center">
               <Clock className="w-5 h-5 mr-2" />
-              <p className="opacity-80 text-sm">Last login: Today at {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+              <p className="opacity-80 text-sm">Last login: Today at {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
             </div>
           </div>
 
-          {/* Progress Overview */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">My Learning Progress</h2>
-              <Link to="/courses" className="text-emerald-600 text-sm font-medium hover:underline flex items-center">
-                View all courses <ChevronRight className="w-4 h-4 ml-1" />
+          {/* Conditional Rendering for Courses */}
+          {courses.length === 0 ? (
+            <div className="text-center mt-8">
+              <h2 className="text-xl font-semibold text-gray-900">Welcome to ELearn Pro!</h2>
+              <p className="text-gray-600 mt-2">It looks like you haven't enrolled in any courses yet. Explore our catalog and start learning today!</p>
+              <Link
+                to="/courses"
+                className="mt-4 inline-block bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-200"
+              >
+                Browse Courses
               </Link>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-              {courses.map(course => (
-                <div key={course.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col">
-                  <img 
-                    src={`${course.image_url}?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=600&h=400&q=80`}
-                    alt={course.title}
-                    className="h-36 w-full object-cover"
-                  />
-                  <div className="p-4 flex-1 flex flex-col">
-                    <h3 className="font-semibold text-gray-900 line-clamp-1">{course.title}</h3>
-                    <p className="text-gray-500 text-sm mt-1 mb-3 line-clamp-2">{course.description}</p>
-                    <div className="mt-auto">
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-500">{course.completed_modules} of {course.total_modules} modules</span>
-                        <span className="font-medium text-emerald-600">{course.progress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${course.progress}%` }}></div>
-                      </div>
-                    </div>
-                    <div className="mt-4 flex justify-between items-center">
-                      <span className="text-xs text-gray-500">Instructor: {course.instructor}</span>
-                      <button className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium">
-                        <PlayCircle className="w-4 h-4 mr-1" /> Continue
-                      </button>
-                    </div>
-                  </div>
+          ) : (
+            <>
+              {/* Progress Overview */}
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900">My Learning Progress</h2>
+                  <Link to="/courses" className="text-emerald-600 text-sm font-medium hover:underline flex items-center">
+                    View all courses <ChevronRight className="w-4 h-4 ml-1" />
+                  </Link>
                 </div>
-              ))}
-            </div>
-          </div>
-          
-          {/* Recommended & Featured Courses */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Recommended For You</h2>
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex flex-col md:flex-row gap-6">
-                <img 
-                  src="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=300&q=80"
-                  alt="Advanced Python Programming"
-                  className="h-48 w-full md:w-64 object-cover rounded-lg"
-                />
-                <div className="flex flex-col flex-1">
-                  <h3 className="font-semibold text-lg text-gray-900">Advanced Python Programming</h3>
-                  <p className="text-gray-500 my-2">Take your Python skills to the next level with advanced concepts such as decorators, generators, and concurrency.</p>
-                  <div className="flex items-center mt-1 mb-4">
-                    <img 
-                      src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" 
-                      alt="Alex Morgan"
-                      className="w-6 h-6 rounded-full mr-2"
-                    />
-                    <span className="text-sm text-gray-600">Alex Morgan</span>
-                  </div>
-                  <div className="mt-auto flex items-center">
-                    <span className="text-2xl font-bold text-gray-900 mr-3">$49.99</span>
-                    <span className="text-sm text-gray-500 line-through mr-4">$99.99</span>
-                    <button className="ml-auto bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-200">
-                      Enroll Now
-                    </button>
-                  </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                  {courses.map(course => (
+                    <div key={course.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col">
+                      <img
+                        src={`${course.image_url}?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=600&h=400&q=80`}
+                        alt={course.title}
+                        className="h-36 w-full object-cover"
+                      />
+                      <div className="p-4 flex-1 flex flex-col">
+                        <h3 className="font-semibold text-gray-900 line-clamp-1">{course.title}</h3>
+                        <p className="text-gray-500 text-sm mt-1 mb-3 line-clamp-2">{course.description}</p>
+                        <div className="mt-auto">
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-gray-500">{course.completed_modules} of {course.total_modules} modules</span>
+                            <span className="font-medium text-emerald-600">{course.progress}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${course.progress}%` }}></div>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex justify-between items-center">
+                          <span className="text-xs text-gray-500">Instructor: {course.instructor}</span>
+                          <button className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium">
+                            <PlayCircle className="w-4 h-4 mr-1" /> Continue
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
-          </div>
+            </>
+          )}
         </main>
       </div>
 
