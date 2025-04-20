@@ -303,7 +303,7 @@ export default function Dashboard() {
             className="flex items-center w-full px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-xl transition-colors duration-200"
           >
             <LogOut className="w-5 h-5" />
-            <span className="ml-3">Logout</span>
+            <span className="ml-3">Logout Olly</span>
           </button>
         </div>
       </div>
