@@ -121,7 +121,7 @@ export default function Dashboard() {
         title: 'Introduction to Web Development',
         description: 'Learn the basics of HTML, CSS, and JavaScript',
         image_url: 'https://images.unsplash.com/photo-1593720213428-28a5b9e94613',
-        instructor: 'Jane Smith',
+        instructor: 'Something Name',
         progress: 85,
         total_modules: 12,
         completed_modules: 10
