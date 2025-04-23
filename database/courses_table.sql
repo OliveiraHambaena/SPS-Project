@@ -46,6 +46,22 @@ CREATE INDEX courses_teacher_id_idx ON public.courses(teacher_id);
 CREATE INDEX courses_status_idx ON public.courses(status);
 CREATE INDEX courses_category_idx ON public.courses(category);
 
+-- Create view for users with additional fields
+CREATE OR REPLACE VIEW public.users_view AS
+SELECT
+  users.id,
+  users.name,
+  users.role,
+  users.identifier_code,
+  users.subject,
+  users.grade,
+  users.avatar_url,
+  users.phone,
+  users.created_at,
+  users.updated_at
+FROM
+  users;
+
 -- Create view for courses with teacher information
 CREATE OR REPLACE VIEW public.courses_with_teacher AS
 SELECT 
@@ -60,6 +76,7 @@ JOIN
 GRANT SELECT ON public.courses TO authenticated;
 GRANT INSERT, UPDATE, DELETE ON public.courses TO authenticated;
 GRANT SELECT ON public.courses_with_teacher TO authenticated;
+GRANT SELECT ON public.users_view TO authenticated;
 
 -- Add comment to table
 COMMENT ON TABLE public.courses IS 'Stores course information created by teachers';
