@@ -152,52 +152,23 @@ export default function Dashboard({ children }: DashboardProps) {
   };
 
   const fetchCourses = async () => {
-    // This would normally fetch from an actual database
-    // Mock course data for demonstration
-    const mockCourses: Course[] = [
-      {
-        id: "1",
-        title: "Introduction to Web Development",
-        description: "Learn the basics of HTML, CSS, and JavaScript",
-        image_url: "https://images.unsplash.com/photo-1593720213428-28a5b9e94613",
-        instructor: "Jane Smith",
-        progress: 85,
-        total_modules: 12,
-        completed_modules: 10,
-      },
-      {
-        id: "2",
-        title: "Advanced React Patterns",
-        description: "Master complex React concepts and patterns",
-        image_url: "https://images.unsplash.com/photo-1633356122102-3fe601e05bd2",
-        instructor: "John Doe",
-        progress: 45,
-        total_modules: 8,
-        completed_modules: 3,
-      },
-      {
-        id: "3",
-        title: "UX/UI Design Fundamentals",
-        description: "Create beautiful and intuitive user interfaces",
-        image_url: "https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e",
-        instructor: "Sara Johnson",
-        progress: 20,
-        total_modules: 10,
-        completed_modules: 2,
-      },
-      {
-        id: "4",
-        title: "Data Science with Python",
-        description: "Analyze and visualize data using Python",
-        image_url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71",
-        instructor: "Michael Chen",
-        progress: 0,
-        total_modules: 15,
-        completed_modules: 0,
-      },
-    ];
+    try {
+      // Fetch courses from the database
+      const { data, error } = await supabase
+        .from("courses")
+        .select("*")
+        .eq("user_id", userData?.id); // Assuming courses are tied to a user ID
 
-    setCourses(mockCourses);
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setCourses(data);
+      } else {
+        setCourses([]); // No courses for first-time login
+      }
+    } catch (err) {
+      console.error("Error fetching courses:", err);
+    }
   };
 
   const handleLogout = async () => {
@@ -602,7 +573,7 @@ export default function Dashboard({ children }: DashboardProps) {
                       </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
             </>
           )}
