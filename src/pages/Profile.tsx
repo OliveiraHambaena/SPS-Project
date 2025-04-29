@@ -4,7 +4,6 @@ import Toast from '../components/Toast'
 import { 
   User, 
   Mail, 
-  Phone,
   Loader2, 
   CheckCircle, 
   AlertCircle,
@@ -12,7 +11,6 @@ import {
   X,
   BadgeCheck,
   ArrowLeft,
-  Shield,
   BookOpen,
   Calendar,
   Clock,
@@ -37,6 +35,8 @@ interface UserProfile {
   phone?: string
   created_at?: string
   updated_at?: string
+  subject?: string
+  grade?: string
 }
 
 interface Course {
@@ -265,41 +265,23 @@ export default function Profile() {
       // Fetch profile from users_view instead of users table
       const { data, error } = await supabase
         .from('users_view')
-        .select('*')
+        .select('id, role, identifier_code, name, subject, grade, created_at, updated_at')
         .eq('id', user.id)
         .single()
 
       if (error) throw error
 
-      // Get avatar URL from users table since it's not in the view
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('avatar_url, phone')
-        .eq('id', user.id)
-        .single()
-
-      if (userError) {
-        console.error('Error fetching user avatar:', userError)
-      }
-
-      const profileData = {
-        ...data,
-        avatar_url: userData?.avatar_url,
-        phone: userData?.phone
-      }
+      const profileData = data
 
       setUserProfile(profileData)
       setFormData({
-        full_name: data.name || '',
-        phone: profileData.phone || '',
+        full_name: data.name || ''
       })
+      // avatar_url may not exist in the view, so skip avatar preview update
 
-      if (profileData.avatar_url) {
-        setAvatarPreview(profileData.avatar_url)
-      }
     } catch (err) {
       console.error('Error fetching profile:', err)
-      setError('Failed to load profile')
+      setError('Failed to load profile: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setLoading(false)
     }
@@ -435,7 +417,9 @@ export default function Profile() {
         </div>
       </div>
     )
-  }  return (
+  }
+
+  return (
     <div className="min-h-screen bg-gray-50">
       {/* Toast Notification */}
       <Toast 
@@ -670,13 +654,31 @@ export default function Profile() {
                 {error && (
                   <div className="mb-6 p-3 flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-lg">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    {error}
+                    <span>{error.includes('avatar_url') || error.includes('phone')
+                      ? 'Profile failed to load because your database is missing the avatar_url and/or phone columns. Please add them or remove from code/view.'
+                      : error}
+                    </span>
+                    <button
+                      className="ml-auto px-2 py-1 text-xs text-red-600 hover:underline"
+                      onClick={() => setError('')}
+                      aria-label="Dismiss error"
+                    >
+                      Dismiss
+                    </button>
                   </div>
                 )}
 
                 {success && (
                   <div className="mb-6 p-3 flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 rounded-lg">
                     <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>{success}</span>
+                    <button
+                      className="ml-auto px-2 py-1 text-xs text-emerald-600 hover:underline"
+                      onClick={() => setSuccess('')}
+                      aria-label="Dismiss success"
+                    >
+                      Dismiss
+                    </button>
                     {success}
                   </div>
                 )}
@@ -1054,33 +1056,25 @@ export default function Profile() {
                   </div>
                 )}
 
-                {activeTab === 'security' && (
-                  <div className="space-y-6">
-                    <div className="bg-blue-50 rounded-lg p-4 flex items-start">
-                      <Shield className="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" />
-                      <div>
-                        <h3 className="text-sm font-medium text-blue-800">Security settings</h3>
-                        <p className="mt-1 text-sm text-blue-700">
-                          Manage your password and account security settings here.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="border-t border-b py-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900">Change password</h3>
-                          <p className="text-sm text-gray-500 mt-1">
-                            Update your password to keep your account secure
-                          </p>
+                {activeTab === 'profile' && (
+                  <>
+                    <div className="space-y-6">
+                      <div className="border-t border-b py-4 mt-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-900">Change password</h3>
+                            <p className="text-sm text-gray-500 mt-1">
+                              Update your password to keep your account secure
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100"
+                            onClick={() => navigate('/reset-password')}
+                          >
+                            Change
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100"
-                          onClick={() => navigate('/reset-password')}
-                        >
-                          Change
-                        </button>
                       </div>
                     </div>
 
@@ -1117,7 +1111,7 @@ export default function Profile() {
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
             </div>
@@ -1125,5 +1119,5 @@ export default function Profile() {
         </div>
       </div>
     </div>
-  )
+  );
 }

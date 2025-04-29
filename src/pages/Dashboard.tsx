@@ -47,7 +47,11 @@ interface ChatMessage {
   timestamp: Date;
 }
 
-export default function Dashboard() {
+interface DashboardProps {
+  children?: React.ReactNode;
+}
+
+export default function Dashboard({ children }: DashboardProps) {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -289,51 +293,14 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* User Profile Card */}
-        <div className="p-4 border-b">
-          <div className="flex items-center space-x-3">
-            <Link
-              to="/profile"
-              className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-100 ring-2 ring-emerald-500 flex-shrink-0 hover:ring-emerald-600 transition-all duration-200"
-            >
-              {userData?.avatar_url ? (
-                <img
-                  src={userData.avatar_url}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-emerald-50">
-                  <User className="w-6 h-6 text-emerald-500" />
-                </div>
-              )}
-            </Link>
-            <div className="flex-1 min-w-0">
-              <Link to="/profile" className="block hover:text-emerald-600 transition-colors">
-                <h3 className="text-sm font-medium text-gray-900 truncate">
-                  {userData?.name || "User"}
-                </h3>
-              </Link>
-              <div className="flex items-center mt-1">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 capitalize">
-                  {userData?.role || "Student"}
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1 truncate">
-                ID: {userData?.identifier_code}
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Navigation Menu */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
           <div className="mb-2 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
             Main Menu
           </div>
           <div className="space-y-1">
-            <a
-              href="#"
+            <Link
+              to="/dashboard"
               className="group flex items-center px-4 py-2.5 text-gray-700 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 border-l-4 border-emerald-500 transition-all duration-300 ease-in-out transform hover:scale-[1.02]"
             >
               <div className="flex-shrink-0 mr-3 p-1 rounded-md bg-white shadow-sm transition-all duration-300 ease-in-out">
@@ -341,7 +308,7 @@ export default function Dashboard() {
               </div>
               <span className="font-medium">Dashboard</span>
               <ChevronRight className="w-4 h-4 ml-auto text-emerald-400" />
-            </a>
+            </Link>
             
             <Link
               to="/courses"
@@ -365,50 +332,32 @@ export default function Dashboard() {
               </a>
             )}
             
-            <a
-              href="#"
+            <Link
+              to="/schedule"
               className="group flex items-center px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-300 ease-in-out transform hover:translate-x-1 hover:scale-[1.01]"
             >
               <div className="flex-shrink-0 mr-3 p-1 rounded-md transition-all duration-300 ease-in-out group-hover:bg-white group-hover:shadow-sm">
                 <Calendar className="w-5 h-5 text-gray-500 group-hover:text-emerald-600" />
               </div>
               <span>Schedule</span>
-            </a>
+            </Link>
             
-            <a
-              href="#"
+            <Link
+              to="/certificates"
               className="group flex items-center px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-300 ease-in-out transform hover:translate-x-1 hover:scale-[1.01]"
             >
               <div className="flex-shrink-0 mr-3 p-1 rounded-md transition-all duration-300 ease-in-out group-hover:bg-white group-hover:shadow-sm">
                 <Award className="w-5 h-5 text-gray-500 group-hover:text-emerald-600" />
               </div>
               <span>Certificates</span>
-            </a>
+            </Link>
           </div>
           
-          <div className="mt-8 mb-2 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Settings
-          </div>
+
           <div className="space-y-1">
-            <Link
-              to="/profile"
-              className="group flex items-center px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-300 ease-in-out transform hover:translate-x-1 hover:scale-[1.01]"
-            >
-              <div className="flex-shrink-0 mr-3 p-1 rounded-md transition-all duration-300 ease-in-out group-hover:bg-white group-hover:shadow-sm">
-                <User className="w-5 h-5 text-gray-500 group-hover:text-emerald-600" />
-              </div>
-              <span>My Profile</span>
-            </Link>
+
             
-            <a
-              href="#"
-              className="group flex items-center px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-300 ease-in-out transform hover:translate-x-1 hover:scale-[1.01]"
-            >
-              <div className="flex-shrink-0 mr-3 p-1 rounded-md transition-all duration-300 ease-in-out group-hover:bg-white group-hover:shadow-sm">
-                <Settings className="w-5 h-5 text-gray-500 group-hover:text-emerald-600" />
-              </div>
-              <span>Settings</span>
-            </a>
+
           </div>
         </nav>
 
@@ -456,14 +405,7 @@ export default function Dashboard() {
               >
                 <Menu className="w-6 h-6" />
               </button>
-              <div className="relative ml-4">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Search courses..."
-                  className="pl-10 pr-4 py-2 w-full sm:w-64 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-shadow duration-200 hover:shadow-sm"
-                />
-              </div>
+
             </div>
             <div className="flex items-center space-x-4">
               <button className="relative p-2 text-gray-400 hover:text-gray-500 transition-colors duration-200">
@@ -503,48 +445,137 @@ export default function Dashboard() {
 
         {/* Dashboard content */}
         <main className="p-4 sm:p-6 lg:p-8">
-          {/* Welcome Section */}
-          <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-xl p-6 mb-8 text-white shadow-lg">
-            <h1 className="text-2xl font-bold mb-2">
-              Welcome back, {userData?.name || "User"}!
-            </h1>
-            <p className="opacity-90 mb-2">
-              You are logged in as{" "}
-              <span className="font-semibold capitalize">
-                {userData?.role || "Student"}
-              </span>
-            </p>
-            <div className="flex items-center mt-3">
-              <Clock className="w-5 h-5 mr-2" />
-              <p className="opacity-80 text-sm">
-                Last login: Today at{" "}
-                {new Date().toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
-            </div>
-          </div>
+          {children ? children : (
+            <>
+              {/* Welcome Section */}
+              <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-xl p-6 mb-8 text-white shadow-lg">
+                <h1 className="text-2xl font-bold mb-2">
+                  Welcome back, {userData?.name || "User"}!
+                </h1>
+                <p className="opacity-90 mb-2">
+                  You are logged in as{" "}
+                  <span className="font-semibold capitalize">
+                    {userData?.role || "Student"}
+                  </span>
+                </p>
+                <div className="flex items-center mt-3">
+                  <Clock className="w-5 h-5 mr-2" />
+                  <p className="opacity-80 text-sm">
+                    Last login: Today at{" "}
+                    {new Date().toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              </div>
 
-          {/* Conditionally Render Courses */}
-          {courses.length === 0 ? (
-            <div className="text-center text-gray-500">
-              <p>You have no courses yet. Start by enrolling in a course!</p>
-            </div>
-          ) : (
-            <div>
-              {/* Render courses here */}
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                My Learning Progress
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                {courses.map((course) => (
-                  <div key={course.id} className="bg-white rounded-xl shadow-sm">
-                    {/* Course card content */}
+              {/* Progress Overview */}
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    My Learning Progress
+                  </h2>
+                  <Link
+                    to="/courses"
+                    className="text-emerald-600 text-sm font-medium hover:underline flex items-center"
+                  >
+                    View all courses <ChevronRight className="w-4 h-4 ml-1" />
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                  {courses.map((course) => (
+                    <div
+                      key={course.id}
+                      className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col"
+                    >
+                      <img
+                        src={`${course.image_url}?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=600&h=400&q=80`}
+                        alt={course.title}
+                        className="h-36 w-full object-cover"
+                      />
+                      <div className="p-4 flex-1 flex flex-col">
+                        <h3 className="font-semibold text-gray-900 line-clamp-1">
+                          {course.title}
+                        </h3>
+                        <p className="text-gray-500 text-sm mt-1 mb-3 line-clamp-2">
+                          {course.description}
+                        </p>
+                        <div className="mt-auto">
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-gray-500">
+                              {course.completed_modules} of {course.total_modules} modules
+                            </span>
+                            <span className="font-medium text-emerald-600">
+                              {course.progress}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-emerald-500 h-2 rounded-full"
+                              style={{ width: `${course.progress}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex justify-between items-center">
+                          <span className="text-xs text-gray-500">
+                            Instructor: {course.instructor}
+                          </span>
+                          <button className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium">
+                            <PlayCircle className="w-4 h-4 mr-1" /> Continue
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recommended & Featured Courses */}
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  Recommended For You
+                </h2>
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <div className="flex flex-col md:flex-row gap-6">
+                    <img
+                      src="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&h=300&q=80"
+                      alt="Advanced Python Programming"
+                      className="h-48 w-full md:w-64 object-cover rounded-lg"
+                    />
+                    <div className="flex flex-col flex-1">
+                      <h3 className="font-semibold text-lg text-gray-900">
+                        Advanced Python Programming
+                      </h3>
+                      <p className="text-gray-500 my-2">
+                        Take your Python skills to the next level with advanced concepts
+                        such as decorators, generators, and concurrency.
+                      </p>
+                      <div className="flex items-center mt-1 mb-4">
+                        <img
+                          src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+                          alt="Alex Morgan"
+                          className="w-6 h-6 rounded-full mr-2"
+                        />
+                        <span className="text-sm text-gray-600">Alex Morgan</span>
+                      </div>
+                      <div className="mt-auto flex items-center">
+                        <span className="text-2xl font-bold text-gray-900 mr-3">
+                          $49.99
+                        </span>
+                        <span className="text-sm text-gray-500 line-through mr-4">
+                          $99.99
+                        </span>
+                        <button className="ml-auto bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-200">
+                          Enroll Now
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </>
           )}
         </main>
       </div>
