@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade 8 Physical Science - Periodic Table Challenge</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --accent-color: #e74c3c;
+            --background-color: #f5f7fa;
+            --text-color: #2c3e50;
+            --light-gray: #ecf0f1;
+            --dark-gray: #7f8c8d;
+            --transition-speed: 0.3s;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            background-color: var(--light-gray);
+            border: none;
+            border-radius: 30px;
+            margin: 0 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all var(--transition-speed);
+        }
+        
+        .tab.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .game-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .game-section {
+            display: none;
+        }
+        
+        .game-section.active {
+            display: block;
+        }
+        
+        .score-display {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        
+        .level-badge {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        
+        .clue-container {
+            background-color: var(--light-gray);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .clue {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        
+        .next-clue-btn {
+            background-color: var(--dark-gray);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color var(--transition-speed);
+        }
+        
+        .next-clue-btn:hover {
+            background-color: #6c7a89;
+        }
+        
+        .periodic-table {
+            display: grid;
+            grid-template-columns: repeat(18, 1fr);
+            gap: 5px;
+            margin-bottom: 30px;
+        }
+        
+        .element {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--light-gray);
+            border-radius: 5px;
+            padding: 5px;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            position: relative;
+        }
+        
+        .element:hover {
+            transform: scale(1.1);
+            z-index: 1;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .element.nonmetal { background-color: #FFEB3B; }
+        .element.noble-gas { background-color: #81D4FA; }
+        .element.alkali-metal { background-color: #FF9800; }
+        .element.alkaline-earth { background-color: #FFCC80; }
+        .element.metalloid { background-color: #A5D6A7; }
+        .element.halogen { background-color: #B39DDB; }
+        .element.transition-metal { background-color: #F48FB1; }
+        .element.post-transition { background-color: #80CBC4; }
+        .element.lanthanide { background-color: #CE93D8; }
+        .element.actinide { background-color: #EF9A9A; }
+        
+        .element-symbol {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .element-number {
+            font-size: 10px;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+        }
+        
+        .element-name {
+            font-size: 8px;
+            text-align: center;
+            margin-top: 2px;
+        }
+        
+        .feedback {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            height: 40px;
+            margin: 20px 0;
+            transition: all var(--transition-speed);
+        }
+        
+        .feedback.correct {
+            color: var(--secondary-color);
+        }
+        
+        .feedback.incorrect {
+            color: var(--accent-color);
+        }
+        
+        /* Density Calculator Styles */
+        .density-problem {
+            background-color: var(--light-gray);
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .problem-statement {
+            font-size: 22px;
+            margin-bottom: 20px;
+        }
+        
+        .problem-values {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 30px;
+        }
+        
+        .value-card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 150px;
+        }
+        
+        .value-label {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+        
+        .value-number {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .value-unit {
+            font-size: 14px;
+            color: var(--dark-gray);
+        }
+        
+        .answer-form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .answer-input {
+            padding: 12px;
+            border: 2px solid var(--light-gray);
+            border-radius: 5px;
+            font-size: 18px;
+            width: 200px;
+            text-align: center;
+            transition: border-color var(--transition-speed);
+        }
+        
+        .answer-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .submit-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color var(--transition-speed);
+        }
+        
+        .submit-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .element-details {
+            display: none;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            margin-top: 20px;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .element-details.show {
+            display: block;
+        }
+        
+        .element-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .element-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 20px;
+        }
+        
+        .element-info {
+            flex: 1;
+        }
+        
+        .element-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .element-subtitle {
+            color: var(--dark-gray);
+            font-size: 16px;
+        }
+        
+        .element-properties {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .property {
+            background-color: var(--light-gray);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .property-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: var(--primary-color);
+        }
+        
+        .property-value {
+            font-size: 18px;
+        }
+        
+        .close-details {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color var(--transition-speed);
+        }
+        
+        .close-details:hover {
+            background-color: #c0392b;
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .periodic-table {
+                grid-template-columns: repeat(9, 1fr);
+            }
+            
+            .problem-values {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .value-card {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .periodic-table {
+                grid-template-columns: repeat(5, 1fr);
+            }
+            
+            .tabs {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .tab {
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Grade 8 Physical Science</h1>
+            <p>Learn about the periodic table and calculate density with these interactive activities!</p>
+        </header>
+        
+        <div class="tabs">
+            <button class="tab active" data-tab="periodic">Periodic Table Challenge</button>
+            <button class="tab" data-tab="density">Density Calculator</button>
+        </div>
+        
+        <div class="game-container">
+            <!-- Periodic Table Challenge Section -->
+            <div class="game-section active" id="periodic-section">
+                <div class="score-display">
+                    <div>Score: <span id="periodic-score">0</span></div>
+                    <div class="level-badge">Level <span id="periodic-level">1</span></div>
+                </div>
+                
+                <div class="clue-container">
+                    <div class="clue" id="element-clue">I have 6 protons and am essential for life</div>
+                    <button class="next-clue-btn" id="next-clue-btn">Next Clue</button>
+                </div>
+                
+                <div class="feedback" id="periodic-feedback"></div>
+                
+                <div class="periodic-table" id="periodic-table">
+                    <!-- Elements will be added here by JavaScript -->
+                </div>
+                
+                <div class="element-details" id="element-details">
+                    <div class="element-header">
+                        <img class="element-image" id="element-image" src="" alt="Element">
+                        <div class="element-info">
+                            <h2 class="element-title" id="element-title">Carbon (C)</h2>
+                            <p class="element-subtitle" id="element-subtitle">Atomic Number: 6</p>
+                        </div>
+                    </div>
+                    
+                    <div class="element-properties">
+                        <div class="property">
+                            <div class="property-name">Atomic Mass</div>
+                            <div class="property-value" id="property-mass">12.011 u</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">Category</div>
+                            <div class="property-value" id="property-category">Nonmetal</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">Electron Configuration</div>
+                            <div class="property-value" id="property-electron">1s² 2s² 2p²</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">Melting Point</div>
+                            <div class="property-value" id="property-melting">3550°C</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">Boiling Point</div>
+                            <div class="property-value" id="property-boiling">4027°C</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">Discovered</div>
+                            <div class="property-value" id="property-discovered">Ancient times</div>
+                        </div>
+                    </div>
+                    
+                    <p id="element-description" class="element-description">
+                        Carbon is a nonmetal that forms the basis for all known life on Earth. It is the 15th most abundant element in the Earth's crust, and the fourth most abundant element in the universe by mass after hydrogen, helium, and oxygen.
+                    </p>
+                    
+                    <button class="close-details" id="close-details">Close</button>
+                </div>
+            </div>
+            
+            <!-- Density Calculator Section -->
+            <div class="game-section" id="density-section">
+                <div class="score-display">
+                    <div>Score: <span id="density-score">0</span></div>
+                    <div class="level-badge">Level <span id="density-level">1</span></div>
+                </div>
+                
+                <div class="density-problem">
+                    <h2>Calculate the Density</h2>
+                    <p class="problem-statement" id="problem-statement">Calculate the density of the object using the mass and volume provided.</p>
+                    
+                    <div class="problem-values">
+                        <div class="value-card">
+                            <div class="value-label">Mass</div>
+                            <div class="value-number" id="mass-value">200</div>
+                            <div class="value-unit" id="mass-unit">g</div>
+                        </div>
+                        
+                        <div class="value-card">
+                            <div class="value-label">Volume</div>
+                            <div class="value-number" id="volume-value">50</div>
+                            <div class="value-unit" id="volume-unit">cm³</div>
+                        </div>
+                    </div>
+                    
+                    <div class="answer-form">
+                        <input type="number" step="0.01" class="answer-input" id="density-answer" placeholder="Enter density">
+                        <div class="value-unit" id="density-unit">g/cm³</div>
+                        <button class="submit-btn" id="submit-density">Submit Answer</button>
+                    </div>
+                </div>
+                
+                <div class="feedback" id="density-feedback"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Element data
+        const elements = [
+            {
+                name: 'Hydrogen',
+                symbol: 'H',
+                number: 1,
+                category: 'Nonmetal',
+                mass: 1.008,
+                electronConfig: '1s¹',
+                meltingPoint: '-259.16°C',
+                boilingPoint: '-252.87°C',
+                discovered: '1766',
+                description: 'Hydrogen is the lightest element and the most abundant chemical substance in the universe. It is primarily used in fossil fuel processing and ammonia production.',
+                clues: [
+                    'I have 1 proton and am the lightest element',
+                    'I make up most of the Sun and stars',
+                    'I am the most abundant element in the universe',
+                    'My name means "water former" in Greek',
+                    'When combined with oxygen, I form water'
+                ],
+                position: { row: 1, col: 1 }
+            },
+            {
+                name: 'Helium',
+                symbol: 'He',
+                number: 2,
+                category: 'Noble Gas',
+                mass: 4.0026,
+                electronConfig: '1s²',
+                meltingPoint: '-272.2°C (at pressure)',
+                boilingPoint: '-268.9°C',
+                discovered: '1868',
+                description: 'Helium is a colorless, odorless, tasteless, non-toxic, inert, monatomic gas. It is the second lightest and second most abundant element in the universe.',
+                clues: [
+                    'I have 2 protons and am used in balloons',
+                    'I am named after the Greek word for the Sun',
+                    'I am the second most abundant element in the universe',
+                    'I make your voice sound funny when inhaled',
+                    'I am a noble gas that doesn\'t react with other elements'
+                ],
+                position: { row: 1, col: 18 }
+            },
+            {
+                name: 'Carbon',
+                symbol: 'C',
+                number: 6,
+                category: 'Nonmetal',
+                mass: 12.011,
+                electronConfig: '1s² 2s² 2p²',
+                meltingPoint: '3550°C',
+                boilingPoint: '4027°C',
+                discovered: 'Ancient times',
+                description: 'Carbon is a nonmetal that forms the basis for all known life on Earth. It is the 15th most abundant element in the Earth\'s crust, and the fourth most abundant element in the universe by mass after hydrogen, helium, and oxygen.',
+                clues: [
+                    'I have 6 protons and am essential for life',
+                    'I am the basis of organic chemistry',
+                    'I can form diamonds and graphite',
+                    'I am the 4th most abundant element in the universe',
+                    'All living things contain me'
+                ],
+                position: { row: 2, col: 14 }
+            },
+            {
+                name: 'Oxygen',
+                symbol: 'O',
+                number: 8,
+                category: 'Nonmetal',
+                mass: 15.999,
+                electronConfig: '1s² 2s² 2p⁴',
+                meltingPoint: '-218.79°C',
+                boilingPoint: '-182.96°C',
+                discovered: '1774',
+                description: 'Oxygen is a highly reactive nonmetal that forms compounds with nearly all other elements. It is the third most abundant element in the universe and makes up about 21% of the Earth\'s atmosphere.',
+                clues: [
+                    'I have 8 protons and you breathe me',
+                    'I make up about 21% of Earth\'s atmosphere',
+                    'I am necessary for combustion',
+                    'My name means "acid producer" in Greek',
+                    'I am the third most abundant element in the universe'
+                ],
+                position: { row: 2, col: 16 }
+            },
+            {
+                name: 'Sodium',
+                symbol: 'Na',
+                number: 11,
+                category: 'Alkali Metal',
+                mass: 22.990,
+                electronConfig: '1s² 2s² 2p⁶ 3s¹',
+                meltingPoint: '97.79°C',
+                boilingPoint: '882.9°C',
+                discovered: '1807',
+                description: 'Sodium is a soft, silvery-white, highly reactive metal. It is the sixth most abundant element in the Earth\'s crust and exists in numerous minerals such as feldspars, sodalite, and rock salt.',
+                clues: [
+                    'I have 11 protons and react violently with water',
+                    'I am an alkali metal with symbol Na',
+                    'I am a key component of table salt',
+                    'I glow yellow-orange in a flame test',
+                    'I am essential for nerve function in humans'
+                ],
+                position: { row: 3, col: 1 }
+            },
+            {
+                name: 'Iron',
+                symbol: 'Fe',
+                number: 26,
+                category: 'Transition Metal',
+                mass: 55.845,
+                electronConfig: '1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d⁶',
+                meltingPoint: '1538°C',
+                boilingPoint: '2862°C',
+                discovered: 'Ancient times',
+                description: 'Iron is a metal that has been used since ancient times. It is the most common element on Earth by mass and is vital to plant and animal life. It is the main component of steel, one of the world\'s most important structural materials.',
+                clues: [
+                    'I have 26 protons and am magnetic',
+                    'I am the most common element on Earth by mass',
+                    'I am the main component of steel',
+                    'My symbol comes from the Latin word "ferrum"',
+                    'I am responsible for the red color of blood'
+                ],
+                position: { row: 4, col: 8 }
+            },
+            {
+                name: 'Gold',
+                symbol: 'Au',
+                number: 79,
+                category: 'Transition Metal',
+                mass: 196.967,
+                electronConfig: '1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d¹⁰ 4p⁶ 5s² 4d¹⁰ 5p⁶ 6s¹ 4f¹⁴ 5d¹⁰',
+                meltingPoint: '1064.18°C',
+                boilingPoint: '2856°C',
+                discovered: 'Ancient times',
+                description: 'Gold is a bright, slightly reddish yellow, dense, soft, malleable, and ductile metal. It is one of the least reactive chemical elements and is solid under standard conditions.',
+                clues: [
+                    'I have 79 protons and am highly valued',
+                    'I am a precious metal used in jewelry',
+                    'My symbol comes from the Latin word "aurum"',
+                    'I don\'t tarnish or corrode easily',
+                    'I am the most malleable and ductile pure metal'
+                ],
+                position: { row: 6, col: 11 }
+            }
+        ];
+
+        // Game state
+        const gameState = {
+            // Periodic Table Challenge
+            periodicScore: 0,
+            periodicLevel: 1,
+            currentElement: null,
+            usedElements: new Set(),
+            
+            // Density Calculator
+            densityScore: 0,
+            densityLevel: 1,
+            currentProblem: null,
+            
+            init: function() {
+                this.initPeriodicTable();
+                this.generateNewElement();
+                this.generateDensityProblem();
+                this.setupEventListeners();
+            },
+            
+            // Initialize the periodic table
+            initPeriodicTable: function() {
+                const periodicTable = document.getElementById('periodic-table');
+                periodicTable.innerHTML = '';
+                
+                // Create empty grid
+                for (let row = 1; row <= 7; row++) {
+                    for (let col = 1; col <= 18; col++) {
+                        // Skip lanthanides and actinides in main table
+                        if ((row === 6 && col >= 3 && col <= 16) || 
+                            (row === 7 && col >= 3 && col <= 16)) {
+                            continue;
+                        }
+                        
+                        const element = elements.find(e => e.position.row === row && e.position.col === col);
+                        
+                        if (element) {
+                            const elementDiv = document.createElement('div');
+                            elementDiv.className = `element ${this.getCategoryClass(element.category)}`;
+                            elementDiv.dataset.number = element.number.toString();
+                            
+                            elementDiv.innerHTML = `
+                                <div class="element-number">${element.number}</div>
+                                <div class="element-symbol">${element.symbol}</div>
+                                <div class="element-name">${element.name}</div>
+                            `;
+                            
+                            elementDiv.addEventListener('click', () => this.checkAnswer(element));
+                            
+                            periodicTable.appendChild(elementDiv);
+                        } else {
+                            // Empty cell
+                            const emptyDiv = document.createElement('div');
+                            emptyDiv.className = 'element empty';
+                            periodicTable.appendChild(emptyDiv);
+                        }
+                    }
+                }
+            },
+            
+            // Get CSS class for element category
+            getCategoryClass: function(category) {
+                const categoryMap = {
+                    'Nonmetal': 'nonmetal',
+                    'Noble Gas': 'noble-gas',
+                    'Alkali Metal': 'alkali-metal',
+                    'Alkaline Earth Metal': 'alkaline-earth',
+                    'Metalloid': 'metalloid',
+                    'Halogen': 'halogen',
+                    'Transition Metal': 'transition-metal',
+                    'Post-transition Metal': 'post-transition',
+                    'Lanthanide': 'lanthanide',
+                    'Actinide': 'actinide'
+                };
+                
+                return categoryMap[category] || '';
+            },
+            
+            // Generate a new element clue
+            generateNewElement: function() {
+                // Filter out already used elements
+                const availableElements = elements.filter(e => !this.usedElements.has(e.number));
+                
+                // If all elements have been used, reset
+                if (availableElements.length === 0) {
+                    this.usedElements.clear();
+                    this.periodicLevel++;
+                    document.getElementById('periodic-level').textContent = this.periodicLevel;
+                    this.generateNewElement();
+                    return;
+                }
+                
+                // Select random element
+                const randomIndex = Math.floor(Math.random() * availableElements.length);
+                this.currentElement = availableElements[randomIndex];
+                this.usedElements.add(this.currentElement.number);
+                
+                // Display clue
+                const clueIndex = Math.floor(Math.random() * this.currentElement.clues.length);
+                document.getElementById('element-clue').textContent = this.currentElement.clues[clueIndex];
+                
+                // Clear feedback
+                document.getElementById('periodic-feedback').textContent = '';
+                document.getElementById('periodic-feedback').className = 'feedback';
+            },
+            
+            // Check if the clicked element is correct
+            checkAnswer: function(element) {
+                const feedback = document.getElementById('periodic-feedback');
+                
+                if (!this.currentElement) return;
+                
+                if (element.number === this.currentElement.number) {
+                    // Correct answer
+                    feedback.textContent = `Correct! That's ${element.name}`;
+                    feedback.className = 'feedback correct';
+                    
+                    // Update score based on level
+                    this.periodicScore += 10 * this.periodicLevel;
+                    document.getElementById('periodic-score').textContent = this.periodicScore;
+                    
+                    // Show element details
+                    this.showElementDetails(element);
+                    
+                    // Generate new element after delay
+                    setTimeout(() => {
+                        this.generateNewElement();
+                        feedback.textContent = '';
+                        feedback.className = 'feedback';
+                    }, 3000);
+                } else {
+                    // Incorrect answer
+                    feedback.textContent = `Incorrect. Try again!`;
+                    feedback.className = 'feedback incorrect';
+                    
+                    // Clear feedback after delay
+                    setTimeout(() => {
+                        feedback.textContent = '';
+                        feedback.className = 'feedback';
+                    }, 2000);
+                }
+            },
+            
+            // Show element details
+            showElementDetails: function(element) {
+                const detailsDiv = document.getElementById('element-details');
+                
+                // Set element details
+                document.getElementById('element-title').textContent = `${element.name} (${element.symbol})`;
+                document.getElementById('element-subtitle').textContent = `Atomic Number: ${element.number}`;
+                document.getElementById('property-mass').textContent = `${element.mass} u`;
+                document.getElementById('property-category').textContent = element.category;
+                document.getElementById('property-electron').textContent = element.electronConfig;
+                document.getElementById('property-melting').textContent = element.meltingPoint;
+                document.getElementById('property-boiling').textContent = element.boilingPoint;
+                document.getElementById('property-discovered').textContent = element.discovered;
+                document.getElementById('element-description').textContent = element.description;
+                
+                // Set element image (placeholder)
+                const elementImage = document.getElementById('element-image');
+                elementImage.src = `https://images-of-elements.com/s/${element.name.toLowerCase()}.jpg`;
+                elementImage.onerror = () => {
+                    elementImage.src = 'https://via.placeholder.com/100?text=' + element.symbol;
+                };
+                
+                detailsDiv.classList.add('show');
+            },
+            
+            // Generate a new density problem
+            generateDensityProblem: function() {
+                const level = this.densityLevel;
+                let mass, volume, object;
+                
+                // Generate problem based on level
+                if (level === 1) {
+                    // Simple whole number problems
+                    mass = Math.floor(Math.random() * 10) * 10 + 50; // 50-140g
+                    volume = Math.floor(Math.random() * 5) * 5 + 10; // 10-35cm³
+                    object = this.getRandomObject(1);
+                } else if (level === 2) {
+                    // Slightly more complex problems
+                    mass = Math.floor(Math.random() * 20) * 15 + 100; // 100-385g
+                    volume = Math.floor(Math.random() * 10) * 8 + 20; // 20-92cm³
+                    object = this.getRandomObject(2);
+                } else {
+                    // Complex problems with decimals
+                    mass = Math.floor(Math.random() * 30) * 25 + 200; // 200-925g
+                    volume = Math.floor(Math.random() * 15) * 10 + 30; // 30-170cm³
+                    object = this.getRandomObject(3);
+                }
+                
+                const answer = mass / volume;
+                
+                this.currentProblem = {
+                    mass,
+                    volume,
+                    answer,
+                    unit: 'g/cm³',
+                    object
+                };
+                
+                // Update UI
+                document.getElementById('mass-value').textContent = mass;
+                document.getElementById('volume-value').textContent = volume;
+                document.getElementById('problem-statement').textContent = 
+                    `Calculate the density of the ${object} using the given mass and volume.`;
+                
+                // Clear previous answer
+                document.getElementById('density-answer').value = '';
+                document.getElementById('density-feedback').textContent = '';
+                document.getElementById('density-feedback').className = 'feedback';
+            },
+            
+            // Get random object name based on level
+            getRandomObject: function(level) {
+                const objects = [
+                    // Level 1
+                    ['wooden block', 'plastic cube', 'rubber ball', 'glass marble', 'metal cylinder'],
+                    // Level 2
+                    ['aluminum block', 'copper cylinder', 'steel sphere', 'brass cube', 'zinc rod'],
+                    // Level 3
+                    ['unknown alloy', 'mystery material', 'experimental compound', 'laboratory sample', 'unidentified substance']
+                ];
+                
+                const levelIndex = Math.min(level - 1, objects.length - 1);
+                const randomIndex = Math.floor(Math.random() * objects[levelIndex].length);
+                return objects[levelIndex][randomIndex];
+            },
+            
+            // Check density answer
+            checkDensityAnswer: function() {
+                if (!this.currentProblem) return;
+                
+                const userAnswer = parseFloat(document.getElementById('density-answer').value);
+                const correctAnswer = this.currentProblem.answer;
+                const feedback = document.getElementById('density-feedback');
+                
+                // Check if answer is within 0.1 of correct answer
+                const isCorrect = Math.abs(userAnswer - correctAnswer) < 0.1;
+                
+                if (isCorrect) {
+                    // Correct answer
+                    feedback.textContent = `Correct! The density is ${correctAnswer.toFixed(2)} g/cm³`;
+                    feedback.className = 'feedback correct';
+                    
+                    // Update score based on level
+                    this.densityScore += 10 * this.densityLevel;
+                    document.getElementById('density-score').textContent = this.densityScore;
+                    
+                    // Level up after every 5 correct answers
+                    if (this.densityScore % (50 * this.densityLevel) === 0) {
+                        this.densityLevel++;
+                        document.getElementById('density-level').textContent = this.densityLevel;
+                    }
+                    
+                    // Generate new problem after delay
+                    setTimeout(() => {
+                        this.generateDensityProblem();
+                    }, 2000);
+                } else {
+                    // Incorrect answer
+                    feedback.textContent = `Incorrect. Try again!`;
+                    feedback.className = 'feedback incorrect';
+                    
+                    // Clear feedback after delay
+                    setTimeout(() => {
+                        feedback.textContent = '';
+                        feedback.className = 'feedback';
+                    }, 2000);
+                }
+            },
+            
+            // Set up event listeners
+            setupEventListeners: function() {
+                // Tab switching
+                const tabs = document.querySelectorAll('.tab');
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        const tabId = tab.dataset.tab;
+                        
+                        // Update active tab
+                        tabs.forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        
+                        // Update active section
+                        document.querySelectorAll('.game-section').forEach(section => {
+                            section.classList.remove('active');
+                        });
+                        document.getElementById(`${tabId}-section`).classList.add('active');
+                    });
+                });
+                
+                // Next clue button
+                document.getElementById('next-clue-btn').addEventListener('click', () => {
+                    if (!this.currentElement) return;
+                    
+                    // Get a different clue
+                    let clueIndex;
+                    let currentClue = document.getElementById('element-clue').textContent;
+                    
+                    do {
+                        clueIndex = Math.floor(Math.random() * this.currentElement.clues.length);
+                    } while (this.currentElement.clues[clueIndex] === currentClue && this.currentElement.clues.length > 1);
+                    
+                    document.getElementById('element-clue').textContent = this.currentElement.clues[clueIndex];
+                });
+                
+                // Close element details
+                document.getElementById('close-details').addEventListener('click', () => {
+                    document.getElementById('element-details').classList.remove('show');
+                });
+                
+                // Submit density answer
+                document.getElementById('submit-density').addEventListener('click', () => {
+                    this.checkDensityAnswer();
+                });
+                
+                // Allow Enter key to submit density answer
+                document.getElementById('density-answer').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.checkDensityAnswer();
+                    }
+                });
+            }
+        };
+
+        // Start the game when the page loads
+        window.onload = function() {
+            gameState.init();
+        };
+    </script>
+</body>
+</html>
