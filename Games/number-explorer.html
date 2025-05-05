@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number Explorer</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background-image: url('https://img.freepik.com/free-vector/cartoon-jungle-background_52683-61450.jpg');
+            background-size: cover;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .game-container {
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #4CAF50;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .target-number {
+            font-size: 48px;
+            margin: 20px 0;
+            color: #FF5722;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 10px;
+            padding: 10px 20px;
+            display: inline-block;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .gems-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .gem {
+            width: 80px;
+            height: 80px;
+            background-image: url('https://img.freepik.com/free-vector/set-colorful-gems-stones-minerals_107791-9527.jpg');
+            background-size: 400px;
+            background-position: calc(-80px * var(--gem-color));
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .gem:hover {
+            transform: scale(1.1);
+        }
+        
+        .score-container {
+            margin-top: 20px;
+            font-size: 24px;
+            color: #333;
+        }
+        
+        .gems-collected {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 10px;
+        }
+        
+        .collected-gem {
+            width: 40px;
+            height: 40px;
+            background-image: url('https://img.freepik.com/free-vector/set-colorful-gems-stones-minerals_107791-9527.jpg');
+            background-size: 200px;
+            background-position: calc(-40px * var(--gem-color));
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .message {
+            font-size: 28px;
+            margin: 20px 0;
+            height: 40px;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        /* Progress bar styles */
+        .progress-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #f1f1f1;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .progress-bar {
+            display: flex;
+            height: 30px;
+        }
+        
+        .correct-bar {
+            background-color: #4CAF50;
+            height: 100%;
+            text-align: center;
+            line-height: 30px;
+            color: white;
+            transition: width 0.5s;
+        }
+        
+        .incorrect-bar {
+            background-color: #F44336;
+            height: 100%;
+            text-align: center;
+            line-height: 30px;
+            color: white;
+            transition: width 0.5s;
+        }
+        
+        .progress-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        /* Difficulty selector styles */
+        .difficulty-selector {
+            margin: 15px 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .difficulty-btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 20px;
+            background-color: #e0e0e0;
+            color: #333;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .difficulty-btn.active {
+            background-color: #4CAF50;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Timer styles */
+        .timer-container {
+            margin: 10px 0;
+            font-size: 20px;
+            color: #333;
+        }
+        
+        /* Level indicator */
+        .level-indicator {
+            margin: 10px 0;
+            font-size: 18px;
+            color: #9C27B0;
+            font-weight: bold;
+        }
+        
+        /* Bonus round styles */
+        .bonus-round {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+        
+        .bonus-round.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .bonus-content {
+            background-color: white;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+        
+        .bonus-title {
+            color: #FF9800;
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .bonus-question {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        
+        .bonus-options {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .bonus-option {
+            padding: 10px 20px;
+            background-color: #f1f1f1;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .bonus-option:hover {
+            background-color: #e0e0e0;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Number Explorer</h1>
+        <p>Find the gem with the matching number!</p>
+        
+        <!-- Difficulty selector -->
+        <div class="difficulty-selector">
+            <button class="difficulty-btn active" data-difficulty="easy">Easy</button>
+            <button class="difficulty-btn" data-difficulty="medium">Medium</button>
+            <button class="difficulty-btn" data-difficulty="hard">Hard</button>
+        </div>
+        
+        <!-- Level indicator -->
+        <div class="level-indicator">Level: <span id="currentLevel">1</span></div>
+        
+        <!-- Timer -->
+        <div class="timer-container">Time: <span id="timer">30</span>s</div>
+        
+        <div class="target-number" id="targetNumber">15</div>
+        
+        <div class="message" id="message"></div>
+        
+        <!-- Progress bar -->
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="correct-bar" id="correctBar"></div>
+                <div class="incorrect-bar" id="incorrectBar"></div>
+            </div>
+            <div class="progress-stats">
+                <span>Correct: <span id="correctCount">0</span></span>
+                <span>Attempts: <span id="totalAttempts">0</span></span>
+                <span>Incorrect: <span id="incorrectCount">0</span></span>
+            </div>
+        </div>
+        
+        <div class="gems-container" id="gemsContainer">
+            <!-- Gems will be added here by JavaScript -->
+        </div>
+        
+        <div class="score-container">
+            <p>Score: <span id="score">0</span></p>
+        </div>
+        
+        <div class="gems-collected" id="gemsCollected">
+            <!-- Collected gems will be shown here -->
+        </div>
+    </div>
+    
+    <!-- Bonus round overlay -->
+    <div class="bonus-round" id="bonusRound">
+        <div class="bonus-content">
+            <h2 class="bonus-title">BONUS ROUND!</h2>
+            <div class="bonus-question" id="bonusQuestion">What is 5 + 7?</div>
+            <div class="bonus-options" id="bonusOptions">
+                <!-- Options will be added by JavaScript -->
+            </div>
+            <div class="message" id="bonusMessage"></div>
+        </div>
+    </div>
+
+    <!-- Audio elements -->
+    <audio id="correctSound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-reward-sound-2069.mp3" preload="auto"></audio>
+    <audio id="wrongSound" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3" preload="auto"></audio>
+    <audio id="bonusSound" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" preload="auto"></audio>
+    <audio id="levelUpSound" src="https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3" preload="auto"></audio>
+
+    <script>
+        // Game variables
+        let score = 0;
+        let targetNumber = 0;
+        let gemsCollected = 0;
+        let correctAnswers = 0;
+        let incorrectAnswers = 0;
+        let totalAttempts = 0;
+        let currentLevel = 1;
+        let difficulty = 'easy';
+        let timeLeft = 30;
+        let timerInterval;
+        let consecutiveCorrect = 0;
+        let soundEnabled = true;
+        
+        // Difficulty settings
+        const difficultySettings = {
+            easy: {
+                maxNumber: 20,
+                options: 6,
+                timeLimit: 30
+            },
+            medium: {
+                maxNumber: 50,
+                options: 8,
+                timeLimit: 25
+            },
+            hard: {
+                maxNumber: 100,
+                options: 10,
+                timeLimit: 20
+            }
+        };
+        
+        // Initialize the game
+        function initGame() {
+            // Reset score and progress
+            score = 0;
+            gemsCollected = 0;
+            correctAnswers = 0;
+            incorrectAnswers = 0;
+            totalAttempts = 0;
+            currentLevel = 1;
+            consecutiveCorrect = 0;
+            
+            document.getElementById('score').textContent = score;
+            document.getElementById('gemsCollected').innerHTML = '';
+            document.getElementById('correctCount').textContent = correctAnswers;
+            document.getElementById('incorrectCount').textContent = incorrectAnswers;
+            document.getElementById('totalAttempts').textContent = totalAttempts;
+            document.getElementById('currentLevel').textContent = currentLevel;
+            updateProgressBar();
+            
+            // Set up difficulty buttons
+            const difficultyButtons = document.querySelectorAll('.difficulty-btn');
+            difficultyButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    difficultyButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    difficulty = btn.dataset.difficulty;
+                    resetTimer();
+                    generateRound();
+                });
+            });
+            
+            // Generate new round
+            resetTimer();
+            generateRound();
+        }
+        
+        // Reset and start timer
+        function resetTimer() {
+            clearInterval(timerInterval);
+            timeLeft = difficultySettings[difficulty].timeLimit;
+            document.getElementById('timer').textContent = timeLeft;
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('message').textContent = 'Time\'s up!';
+                    document.getElementById('message').style.color = '#F44336';
+                    setTimeout(generateRound, 1500);
+                }
+            }, 1000);
+        }
+        
+        // Generate a new round with a target number and gem options
+        function generateRound() {
+            // Clear message
+            document.getElementById('message').textContent = '';
+            
+            // Reset timer
+            resetTimer();
+            
+            // Generate a random target number based on difficulty
+            const maxNumber = difficultySettings[difficulty].maxNumber;
+            targetNumber = Math.floor(Math.random() * maxNumber) + 1;
+            document.getElementById('targetNumber').textContent = targetNumber;
+            
+            // Generate gem options
+            const gemsContainer = document.getElementById('gemsContainer');
+            gemsContainer.innerHTML = '';
+            
+            // Create an array of numbers including the target and some random ones
+            const numOptions = difficultySettings[difficulty].options;
+            const numbers = [targetNumber];
+            while (numbers.length < numOptions) {
+                const randomNum = Math.floor(Math.random() * maxNumber) + 1;
+                if (!numbers.includes(randomNum)) {
+                    numbers.push(randomNum);
+                }
+            }
+            
+            // Shuffle the numbers
+            shuffleArray(numbers);
+            
+            // Create gem buttons
+            numbers.forEach(num => {
+                const gemColor = Math.floor(Math.random() * 5); // 5 different gem colors
+                const gem = document.createElement('div');
+                gem.className = 'gem';
+                gem.style.setProperty('--gem-color', gemColor);
+                gem.textContent = num;
+                gem.addEventListener('click', () => checkAnswer(num, gemColor));
+                gemsContainer.appendChild(gem);
+            });
+        }
+        
+        // Check if the clicked gem has the correct number
+        function checkAnswer(selectedNumber, gemColor) {
+            totalAttempts++;
+            document.getElementById('totalAttempts').textContent = totalAttempts;
+            
+            if (selectedNumber === targetNumber) {
+                // Correct answer
+                correctAnswers++;
+                consecutiveCorrect++;
+                document.getElementById('correctCount').textContent = correctAnswers;
+                
+                // Calculate score based on difficulty and time left
+                const basePoints = difficulty === 'easy' ? 10 : (difficulty === 'medium' ? 20 : 30);
+                const timeBonus = Math.floor(timeLeft / 5);
+                const pointsEarned = basePoints + timeBonus;
+                
+                score += pointsEarned;
+                document.getElementById('score').textContent = score;
+                document.getElementById('message').textContent = `Correct! +${pointsEarned} points`;
+                document.getElementById('message').style.color = '#4CAF50';
+                
+                // Play sound
+                if (soundEnabled) {
+                    document.getElementById('correctSound').play();
+                }
+                
+                // Add collected gem
+                addCollectedGem(gemColor);
+                
+                // Check for level up (every 5 correct answers)
+                if (correctAnswers % 5 === 0) {
+                    levelUp();
+                }
+                
+                // Check for bonus round (3 consecutive correct answers)
+                if (consecutiveCorrect >= 3) {
+                    consecutiveCorrect = 0;
+                    setTimeout(() => {
+                        showBonusRound();
+                    }, 1000);
+                } else {
+                    // Generate new round after a short delay
+                    setTimeout(generateRound, 1500);
+                }
+            } else {
+                // Wrong answer
+                incorrectAnswers++;
+                consecutiveCorrect = 0;
+                document.getElementById('incorrectCount').textContent = incorrectAnswers;
+                
+                document.getElementById('message').textContent = 'Try again!';
+                document.getElementById('message').style.color = '#F44336';
+                
+                // Play sound
+                if (soundEnabled) {
+                    document.getElementById('wrongSound').play();
+                }
+            }
+            
+            // Update progress bar
+            updateProgressBar();
+        }
+        
+        // Level up function
+        function levelUp() {
+            currentLevel++;
+            document.getElementById('currentLevel').textContent = currentLevel;
+            
+            // Play level up sound
+            if (soundEnabled) {
+                document.getElementById('levelUpSound').play();
+            }
+            
+            // Show level up message
+            const message = document.getElementById('message');
+            message.textContent = `Level Up! You're now level ${currentLevel}`;
+            message.style.color = '#9C27B0';
+            
+            // Increase difficulty slightly within the current difficulty level
+            const currentSettings = difficultySettings[difficulty];
+            if (currentSettings.timeLimit > 10) {
+                currentSettings.timeLimit -= 1;
+            }
+            if (currentLevel % 3 === 0 && currentSettings.options < 12) {
+                currentSettings.options += 1;
+            }
+        }
+        
+        // Show bonus round
+        function showBonusRound() {
+            clearInterval(timerInterval);
+            
+            // Play bonus sound
+            if (soundEnabled) {
+                document.getElementById('bonusSound').play();
+            }
+            
+            const bonusRound = document.getElementById('bonusRound');
+            bonusRound.classList.add('active');
+            
+            // Generate bonus question (simple math operation)
+            let num1, num2, operation, answer, options;
+            
+            if (difficulty === 'easy') {
+                num1 = Math.floor(Math.random() * 10) + 1;
+                num2 = Math.floor(Math.random() * 10) + 1;
+                operation = '+';
+                answer = num1 + num2;
+            } else if (difficulty === 'medium') {
+                const operations = ['+', '-', '*'];
+                operation = operations[Math.floor(Math.random() * operations.length)];
+                
+                if (operation === '+') {
+                    num1 = Math.floor(Math.random() * 20) + 1;
+                    num2 = Math.floor(Math.random() * 20) + 1;
+                    answer = num1 + num2;
+                } else if (operation === '-') {
+                    num1 = Math.floor(Math.random() * 20) + 10;
+                    num2 = Math.floor(Math.random() * 10) + 1;
+                    answer = num1 - num2;
+                } else {
+                    num1 = Math.floor(Math.random() * 10) + 1;
+                    num2 = Math.floor(Math.random() * 10) + 1;
+                    answer = num1 * num2;
+                }
+            } else {
+                const operations = ['+', '-', '*', '/'];
+                operation = operations[Math.floor(Math.random() * operations.length)];
+                
+                if (operation === '+') {
+                    num1 = Math.floor(Math.random() * 50) + 10;
+                    num2 = Math.floor(Math.random() * 50) + 10;
+                    answer = num1 + num2;
+                } else if (operation === '-') {
+                    num1 = Math.floor(Math.random() * 50) + 50;
+                    num2 = Math.floor(Math.random() * 50) + 1;
+                    answer = num1 - num2;
+                } else if (operation === '*') {
+                    num1 = Math.floor(Math.random() * 12) + 1;
+                    num2 = Math.floor(Math.random() * 12) + 1;
+                    answer = num1 * num2;
+                } else {
+                    num2 = Math.floor(Math.random() * 10) + 1;
+                    answer = Math.floor(Math.random() * 10) + 1;
+                    num1 = num2 * answer;
+                    answer = num1 / num2;
+                }
+            }
+            
+            // Set question text
+            document.getElementById('bonusQuestion').textContent = `What is ${num1} ${operation} ${num2}?`;
+            
+            // Generate options
+            options = [answer];
+            while (options.length < 4) {
+                let wrongAnswer;
+                if (operation === '+' || operation === '-') {
+                    wrongAnswer = answer + (Math.floor(Math.random() * 10) - 5);
+                } else if (operation === '*') {
+                    wrongAnswer = answer + (Math.floor(Math.random() * 10) - 5);
+                } else {
+                    wrongAnswer = answer + (Math.floor(Math.random() * 5) - 2);
+                }
+                
+                if (wrongAnswer > 0 && !options.includes(wrongAnswer)) {
+                    options.push(wrongAnswer);
+                }
+            }
+            
+            // Shuffle options
+            shuffleArray(options);
+            
+            // Create option buttons
+            const bonusOptions = document.getElementById('bonusOptions');
+            bonusOptions.innerHTML = '';
+            
+            options.forEach(option => {
+                const optionBtn = document.createElement('div');
+                optionBtn.className = 'bonus-option';
+                optionBtn.textContent = option;
+                optionBtn.addEventListener('click', () => {
+                    // Check bonus answer
+                    const bonusMessage = document.getElementById('bonusMessage');
+                    
+                    if (option === answer) {
+                        // Correct bonus answer
+                        const bonusPoints = difficulty === 'easy' ? 30 : (difficulty === 'medium' ? 50 : 100);
+                        score += bonusPoints;
+                        document.getElementById('score').textContent = score;
+                        
+                        bonusMessage.textContent = `Correct! +${bonusPoints} bonus points!`;
+                        bonusMessage.style.color = '#4CAF50';
+                        
+                        if (soundEnabled) {
+                            document.getElementById('correctSound').play();
+                        }
+                    } else {
+                        // Wrong bonus answer
+                        bonusMessage.textContent = `Wrong! The answer was ${answer}.`;
+                        bonusMessage.style.color = '#F44336';
+                        
+                        if (soundEnabled) {
+                            document.getElementById('wrongSound').play();
+                        }
+                    }
+                    
+                    // Close bonus round after delay
+                    setTimeout(() => {
+                        bonusRound.classList.remove('active');
+                        bonusMessage.textContent = '';
+                        generateRound();
+                    }, 2000);
+                });
+                
+                bonusOptions.appendChild(optionBtn);
+            });
+        }
+        
+        // Update the progress bar based on correct and incorrect answers
+        function updateProgressBar() {
+            const correctBar = document.getElementById('correctBar');
+            const incorrectBar = document.getElementById('incorrectBar');
+            
+            if (totalAttempts > 0) {
+                const correctPercentage = (correctAnswers / totalAttempts) * 100;
+                const incorrectPercentage = (incorrectAnswers / totalAttempts) * 100;
+                
+                correctBar.style.width = correctPercentage + '%';
+                incorrectBar.style.width = incorrectPercentage + '%';
+                
+                // Add text inside bars if wide enough
+                if (correctPercentage > 10) {
+                    correctBar.textContent = Math.round(correctPercentage) + '%';
+                } else {
+                    correctBar.textContent = '';
+                }
+                
+                if (incorrectPercentage > 10) {
+                    incorrectBar.textContent = Math.round(incorrectPercentage) + '%';
+                } else {
+                    incorrectBar.textContent = '';
+                }
+            } else {
+                correctBar.style.width = '0%';
+                incorrectBar.style.width = '0%';
+                correctBar.textContent = '';
+                incorrectBar.textContent = '';
+            }
+        }
+        
+        // Add a collected gem to the display
+        function addCollectedGem(gemColor) {
+            gemsCollected++;
+            const gemsCollectedContainer = document.getElementById('gemsCollected');
+            const collectedGem = document.createElement('div');
+            collectedGem.className = 'collected-gem';
+            collectedGem.style.setProperty('--gem-color', gemColor);
+            gemsCollectedContainer.appendChild(collectedGem);
+        }
+        
+        // Shuffle array (Fisher-Yates algorithm)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        
+        // Start the game when the page loads
+        window.onload = initGame;
+    </script>
+    <script src="./periodic-table-challenge.js"></script>
+</body>
+</html>
