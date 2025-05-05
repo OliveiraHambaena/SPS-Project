@@ -11,6 +11,7 @@ import ResetPassword from './pages/ResetPassword'
 import Profile from './pages/Profile'
 import Courses from './pages/Courses'
 import CourseDetail from './pages/CourseDetail'
+import ManageCourse from './pages/ManageCourse'
 import Certificates from './pages/Certificates'
 import Schedule from './pages/Schedule'
 import Study from './pages/Study'
@@ -167,6 +168,16 @@ function App() {
           element={
             session ? (
               <CourseDetail />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } 
+        />
+        <Route 
+          path="/manage-course/:courseId" 
+          element={
+            session ? (
+              <ManageCourse />
             ) : (
               <Navigate to="/login" replace />
             )

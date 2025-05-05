@@ -28,7 +28,7 @@ interface UserData {
   id: string;
   role: "student" | "teacher" | "parent";
   identifier_code: string;
-  name?: string;
+  full_name?: string;
   avatar_url?: string;
 }
 
@@ -116,7 +116,7 @@ export default function Dashboard({ children }: DashboardProps) {
       // Fetch user data from the users_view instead of users table
       const { data, error } = await supabase
         .from("users_view")
-        .select("id, role, identifier_code, name")
+        .select("id, role, identifier_code, full_name")
         .eq("id", user.id)
         .single();
 
@@ -138,7 +138,7 @@ export default function Dashboard({ children }: DashboardProps) {
               id: user.id,
               role: "student",
               identifier_code: user.id.substring(0, 8).toUpperCase(),
-              name: user.email?.split("@")[0] || "New User",
+              full_name: user.email?.split("@")[0] || "New User",
             })
             .select()
             .single();
@@ -321,7 +321,7 @@ export default function Dashboard({ children }: DashboardProps) {
   }
 
   const displayName =
-    userData?.name ||
+    userData?.full_name ||
     (userData?.role
       ? userData.role.charAt(0).toUpperCase() + userData.role.slice(1)
       : "User");
@@ -469,7 +469,7 @@ export default function Dashboard({ children }: DashboardProps) {
               <div className="flex items-center">
                 <div className="flex flex-col mr-2">
                   <span className="text-sm font-medium text-gray-900">
-                    {userData?.name || "User"}
+                    {userData?.full_name || "User"}
                   </span>
                   <span className="text-xs text-emerald-600 capitalize">
                     {userData?.role || "Student"}
@@ -504,7 +504,7 @@ export default function Dashboard({ children }: DashboardProps) {
               {/* Welcome Section */}
               <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-xl p-6 mb-8 text-white shadow-lg">
                 <h1 className="text-2xl font-bold mb-2">
-                  Welcome back, {userData?.name || "User"}!
+                  Welcome back, {userData?.full_name || "User"}!
                 </h1>
                 <p className="opacity-90 mb-2">
                   You are logged in as{" "}

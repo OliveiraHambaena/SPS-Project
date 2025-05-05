@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   Search,
@@ -17,6 +17,7 @@ import {
   BookOpenCheck
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { Course as CourseType } from '../types/course'
 
 interface UserData {
   id: string
@@ -25,18 +26,11 @@ interface UserData {
   name?: string
 }
 
-interface Course {
-  id: string
-  title: string
-  description: string
-  image_url: string
-  instructor: string
-  rating?: number
-  reviews_count?: number
+interface Course extends CourseType {
+  instructor_name?: string
   duration?: string
-  level?: 'Beginner' | 'Intermediate' | 'Advanced' | 'All Levels'
+  level?: string
   category?: string
-  tags?: string[]
 }
 
 export default function Courses() {
@@ -109,167 +103,61 @@ export default function Courses() {
   const fetchCourses = async () => {
     setCoursesLoading(true)
     try {
-      // Try to fetch courses from Supabase
+      // Fetch courses from Supabase with instructor information
       const { data, error } = await supabase
         .from('courses')
-        .select('*')
+        .select(`
+          id, 
+          title, 
+          description, 
+          rating, 
+          review_count,
+          student_count,
+          duration_hours,
+          difficulty_level,
+          instructor_id,
+          created_by,
+          created_at,
+          updated_at,
+          last_updated,
+          language,
+          has_certificate,
+          is_featured,
+          thumbnail_url,
+          video_preview_url,
+          users!instructor_id(id, full_name, avatar_url)
+        `)
       
       if (error) {
         console.error('Error fetching courses:', error)
         throw error
       }
       
-      if (data && data.length > 0) {
-        setCourses(data as Course[])
-      } else {
-        // If no courses found in database, use mock data
-        console.log('No courses found in database, using mock data')
-        const mockCourses: Course[] = [
-          {
-            id: '1',
-            title: 'Introduction to Web Development',
-            description: 'Learn the basics of HTML, CSS, and JavaScript to build responsive websites from scratch.',
-            image_url: 'https://images.unsplash.com/photo-1593720213428-28a5b9e94613',
-            instructor: 'Jane Smith',
-            rating: 4.8,
-            reviews_count: 420,
-            duration: '10 weeks',
-            level: 'Beginner',
-            category: 'Web Development',
-            tags: ['HTML', 'CSS', 'JavaScript']
-          },
-          {
-            id: '2',
-            title: 'Advanced React Patterns',
-            description: 'Master complex React concepts and patterns for building scalable and maintainable applications.',
-            image_url: 'https://images.unsplash.com/photo-1633356122102-3fe601e05bd2',
-            instructor: 'John Doe',
-            rating: 4.9,
-            reviews_count: 350,
-            duration: '8 weeks',
-            level: 'Advanced',
-            category: 'Web Development',
-            tags: ['React', 'JavaScript', 'Frontend']
-          },
-          {
-            id: '3',
-            title: 'UX/UI Design Fundamentals',
-            description: 'Create beautiful and intuitive user interfaces with modern design principles and tools.',
-            image_url: 'https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e',
-            instructor: 'Sara Johnson',
-            rating: 4.7,
-            reviews_count: 280,
-            duration: '6 weeks',
-            level: 'Beginner',
-            category: 'Design',
-            tags: ['UX', 'UI', 'Figma']
-          },
-          {
-            id: '4',
-            title: 'Data Science with Python',
-            description: 'Analyze and visualize data using Python, pandas, and matplotlib for data-driven insights.',
-            image_url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71',
-            instructor: 'Michael Chen',
-            rating: 4.6,
-            reviews_count: 310,
-            duration: '12 weeks',
-            level: 'Intermediate',
-            category: 'Data Science',
-            tags: ['Python', 'Data Analysis', 'Visualization']
-          },
-          {
-            id: '5',
-            title: 'Mobile App Development with Flutter',
-            description: 'Build cross-platform mobile applications with Flutter and Dart programming language.',
-            image_url: 'https://images.unsplash.com/photo-1617040619263-41c5a9ca7521',
-            instructor: 'Alex Johnson',
-            rating: 4.5,
-            reviews_count: 230,
-            duration: '10 weeks',
-            level: 'Intermediate',
-            category: 'Mobile Development',
-            tags: ['Flutter', 'Dart', 'Mobile']
-          },
-          {
-            id: '6',
-            title: 'Digital Marketing Mastery',
-            description: 'Learn effective digital marketing strategies to grow your business and reach more customers.',
-            image_url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f',
-            instructor: 'Emily Wilson',
-            rating: 4.7,
-            reviews_count: 290,
-            duration: '8 weeks',
-            level: 'All Levels',
-            category: 'Marketing',
-            tags: ['SEO', 'Social Media', 'Content Marketing']
-          },
-          {
-            id: '7',
-            title: 'Machine Learning Fundamentals',
-            description: 'Understand the core concepts of machine learning and implement algorithms from scratch.',
-            image_url: 'https://images.unsplash.com/photo-1555949963-ff9fe0c870eb',
-            instructor: 'David Brown',
-            rating: 4.9,
-            reviews_count: 410,
-            duration: '14 weeks',
-            level: 'Advanced',
-            category: 'Data Science',
-            tags: ['Machine Learning', 'AI', 'Python']
-          },
-          {
-            id: '8',
-            title: 'Business Strategy and Management',
-            description: 'Develop strategic thinking and management skills to lead organizations effectively.',
-            image_url: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf',
-            instructor: 'Robert Miller',
-            rating: 4.6,
-            reviews_count: 260,
-            duration: '10 weeks',
-            level: 'Intermediate',
-            category: 'Business',
-            tags: ['Strategy', 'Management', 'Leadership']
-          }
-        ]
-        
-        setCourses(mockCourses)
-      }
+      // Transform the data to match our Course interface
+      const transformedCourses: Course[] = data?.map(course => ({
+        ...course,
+        instructor_name: course.users?.full_name || 'Unknown Instructor',
+        level: course.difficulty_level || 'All Levels',
+        // Convert duration_hours to a readable format
+        duration: course.duration_hours ? `${course.duration_hours} hours` : 'Self-paced',
+        // Use thumbnail_url or a fallback
+        image_url: course.thumbnail_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3',
+        // For now, use a default category until we add categories to the database
+        category: course.language === 'English' ? 'Web Development' : course.language,
+        reviews_count: course.review_count || 0
+      })) || []
+      
+      setCourses(transformedCourses)
     } catch (err) {
       console.error('Error in fetchCourses:', err)
-      // Fallback to mock data in case of error
-      const mockCourses: Course[] = [
-        // Same mock data as above
-        {
-          id: '1',
-          title: 'Introduction to Web Development',
-          description: 'Learn the basics of HTML, CSS, and JavaScript to build responsive websites from scratch.',
-          image_url: 'https://images.unsplash.com/photo-1593720213428-28a5b9e94613',
-          instructor: 'Jane Smith',
-          rating: 4.8,
-          reviews_count: 420,
-          duration: '10 weeks',
-          level: 'Beginner',
-          category: 'Web Development',
-          tags: ['HTML', 'CSS', 'JavaScript']
-        },
-        {
-          id: '2',
-          title: 'Advanced React Patterns',
-          description: 'Master complex React concepts and patterns for building scalable and maintainable applications.',
-          image_url: 'https://images.unsplash.com/photo-1633356122102-3fe601e05bd2',
-          instructor: 'John Doe',
-          rating: 4.9,
-          reviews_count: 350,
-          duration: '8 weeks',
-          level: 'Advanced',
-          category: 'Web Development',
-          tags: ['React', 'JavaScript', 'Frontend']
-        }
-      ]
-      setCourses(mockCourses)
+      // Set empty array in case of error
+      setCourses([])
     } finally {
       setCoursesLoading(false)
     }
-  }  // Filter and sort courses based on user selections
+  }
+
+  // Filter and sort courses based on user selections
   const filteredCourses = courses
     .filter(course => {
       // Search filter
@@ -495,7 +383,7 @@ export default function Courses() {
                 <div key={course.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
                   <div className="relative">
                     <img 
-                      src={`${course.image_url}?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=600&h=400&q=80`}
+                      src={course.image_url}
                       alt={course.title}
                       className="h-48 w-full object-cover"
                       onError={(e) => {
@@ -506,12 +394,16 @@ export default function Courses() {
                   </div>
                   <div className="p-4 flex-1 flex flex-col">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <span className="text-xs font-medium px-2 py-0.5 bg-gray-100 text-gray-800 rounded-full">
-                        {course.category}
-                      </span>
-                      <span className="text-xs font-medium px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full">
-                        {course.level}
-                      </span>
+                      {course.category && (
+                        <span className="text-xs font-medium px-2 py-0.5 bg-gray-100 text-gray-800 rounded-full">
+                          {course.category}
+                        </span>
+                      )}
+                      {course.level && (
+                        <span className="text-xs font-medium px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full">
+                          {course.level}
+                        </span>
+                      )}
                     </div>
                     <h3 className="font-semibold text-gray-900 mt-1 line-clamp-2 text-lg">{course.title}</h3>
                     <p className="text-gray-500 text-sm mt-2 mb-3 line-clamp-2">{course.description}</p>
@@ -519,22 +411,26 @@ export default function Courses() {
                     <div className="mt-auto space-y-3">
                       <div className="flex items-center">
                         <User className="w-4 h-4 text-gray-400 mr-1" />
-                        <span className="text-sm text-gray-600">{course.instructor}</span>
+                        <span className="text-sm text-gray-600">{course.instructor_name}</span>
                       </div>
                       
-                      <div className="flex items-center">
+                      {course.rating && (
                         <div className="flex items-center">
-                          <Star className="w-4 h-4 text-yellow-400" />
-                          <span className="ml-1 text-sm font-medium text-gray-900">{course.rating}</span>
+                          <div className="flex items-center">
+                            <Star className="w-4 h-4 text-yellow-400" />
+                            <span className="ml-1 text-sm font-medium text-gray-900">{course.rating.toFixed(1)}</span>
+                          </div>
+                          <span className="mx-1 text-gray-400">•</span>
+                          <span className="text-sm text-gray-500">{course.reviews_count} reviews</span>
                         </div>
-                        <span className="mx-1 text-gray-400">•</span>
-                        <span className="text-sm text-gray-500">{course.reviews_count} reviews</span>
-                      </div>
+                      )}
                       
-                      <div className="flex items-center">
-                        <Clock className="w-4 h-4 text-gray-400 mr-1" />
-                        <span className="text-sm text-gray-600">{course.duration}</span>
-                      </div>
+                      {course.duration && (
+                        <div className="flex items-center">
+                          <Clock className="w-4 h-4 text-gray-400 mr-1" />
+                          <span className="text-sm text-gray-600">{course.duration}</span>
+                        </div>
+                      )}
                       
                       <Link 
                         to={`/course/${course.id}`}
@@ -552,58 +448,63 @@ export default function Courses() {
             <div className="space-y-4">
               {filteredCourses.map(course => (
                 <div key={course.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
-                  <div className="flex flex-col md:flex-row h-full">
-                    <div className="md:w-64 relative">
+                  <div className="flex flex-col md:flex-row">
+                    <div className="md:w-64 h-48 md:h-auto">
                       <img 
-                        src={`${course.image_url}?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=600&h=400&q=80`}
+                        src={course.image_url}
                         alt={course.title}
-                        className="h-48 md:h-full w-full object-cover"
+                        className="h-full w-full object-cover"
                         onError={(e) => {
-                          // Fallback image if the original fails to load
                           e.currentTarget.src = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&h=400&q=80'
                         }}
                       />
                     </div>
-                    <div className="p-4 flex-1 flex flex-col">
+                    <div className="p-4 md:p-6 flex-1 flex flex-col">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className="text-xs font-medium px-2 py-0.5 bg-gray-100 text-gray-800 rounded-full">
-                          {course.category}
-                        </span>
-                        <span className="text-xs font-medium px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full">
-                          {course.level}
-                        </span>
+                        {course.category && (
+                          <span className="text-xs font-medium px-2 py-0.5 bg-gray-100 text-gray-800 rounded-full">
+                            {course.category}
+                          </span>
+                        )}
+                        {course.level && (
+                          <span className="text-xs font-medium px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full">
+                            {course.level}
+                          </span>
+                        )}
                       </div>
-                      <h3 className="font-semibold text-gray-900 mt-1 text-lg">{course.title}</h3>
-                      <p className="text-gray-500 text-sm mt-2 mb-4">{course.description}</p>
+                      <h3 className="font-semibold text-gray-900 text-xl mb-2">{course.title}</h3>
+                      <p className="text-gray-500 mb-4">{course.description}</p>
                       
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-auto">
+                      <div className="mt-auto grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
                         <div className="flex items-center">
-                          <User className="w-4 h-4 text-gray-400 mr-1" />
-                          <span className="text-sm text-gray-600">{course.instructor}</span>
+                          <User className="w-4 h-4 text-gray-400 mr-2" />
+                          <span className="text-sm text-gray-600">{course.instructor_name}</span>
                         </div>
                         
-                        <div className="flex items-center">
+                        {course.rating && (
                           <div className="flex items-center">
-                            <Star className="w-4 h-4 text-yellow-400" />
-                            <span className="ml-1 text-sm font-medium text-gray-900">{course.rating}</span>
+                            <Star className="w-4 h-4 text-yellow-400 mr-2" />
+                            <span className="text-sm font-medium text-gray-900">{course.rating.toFixed(1)}</span>
+                            <span className="mx-1 text-gray-400">•</span>
+                            <span className="text-sm text-gray-500">{course.reviews_count} reviews</span>
                           </div>
-                          <span className="mx-1 text-gray-400">•</span>
-                          <span className="text-sm text-gray-500">{course.reviews_count} reviews</span>
-                        </div>
+                        )}
                         
-                        <div className="flex items-center">
-                          <Clock className="w-4 h-4 text-gray-400 mr-1" />
-                          <span className="text-sm text-gray-600">{course.duration}</span>
+                        {course.duration && (
+                          <div className="flex items-center">
+                            <Clock className="w-4 h-4 text-gray-400 mr-2" />
+                            <span className="text-sm text-gray-600">{course.duration}</span>
+                          </div>
+                        )}
+                        
+                        <div className="sm:col-span-3 mt-2 sm:mt-4">
+                          <Link 
+                            to={`/course/${course.id}`}
+                            className="inline-block py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors text-sm font-medium"
+                          >
+                            View Details
+                          </Link>
                         </div>
-                      </div>
-                      
-                      <div className="flex justify-end items-center mt-4 pt-4 border-t">
-                        <Link 
-                          to={`/course/${course.id}`}
-                          className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
-                        >
-                          View Details
-                        </Link>
                       </div>
                     </div>
                   </div>

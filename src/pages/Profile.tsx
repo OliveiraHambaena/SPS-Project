@@ -1,1054 +1,1059 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import Toast from '../components/Toast'
-import { 
-  User, 
-  Mail, 
-  Loader2, 
-  CheckCircle, 
-  AlertCircle,
-  Camera,
-  X,
-  BadgeCheck,
-  ArrowLeft,
-  BookOpen,
-  Calendar,
-  Clock,
-  PlusCircle,
-  BookText,
-  Pencil,
-  Trash2,
-  Tag,
-  Timer,
-  Users,
-  ChevronDown,
-  Image,
-  Phone
-} from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import React, { useState, useEffect, useRef, Fragment } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { User, Camera, Loader2, CheckCircle, ArrowLeft, Shield, Book, GraduationCap, Calendar, Clock, Star, Users, Clock3, Award, ExternalLink, X, Upload, Info } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
+// TypeScript interfaces
 interface UserProfile {
-  id: string
-  role: 'student' | 'teacher' | 'parent'
-  identifier_code: string
-  name?: string
-  avatar_url?: string
-  phone?: string
-  created_at?: string
-  updated_at?: string
-  subject?: string
-  grade?: string
+  id: string;
+  role: 'student' | 'teacher' | 'parent';
+  identifier_code: string;
+  name?: string;
+  subject?: string;
+  grade?: string;
+  created_at?: string;
+  updated_at?: string;
+  // These fields might come from other tables or be added client-side
+  full_name?: string;
+  avatar_url?: string;
+  phone?: string;
+  email?: string;
 }
 
-interface Course {
-  id: string
-  title: string
-  description: string
-  created_at: string
-  teacher_id: string
-  status: 'draft' | 'published'
-  category?: string
-  duration?: number
-  max_students?: number
-  level?: 'beginner' | 'intermediate' | 'advanced'
-  course_image_url?: string
+interface FormData {
+  full_name: string;
+  email: string;
+}
+
+interface FormErrors {
+  full_name?: string;
+  email?: string;
+  avatar?: string;
 }
 
 export default function Profile() {
-  const navigate = useNavigate()
-  const [loading, setLoading] = useState(true)
-  const [updating, setUpdating] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-  const [toastVisible, setToastVisible] = useState(false)
-  const [toastMessage, setToastMessage] = useState('')
-  const [toastType, setToastType] = useState<'success' | 'error'>('success')
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
-  const [email, setEmail] = useState('')
-  const [formData, setFormData] = useState({
+  const navigate = useNavigate();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [formData, setFormData] = useState<FormData>({
     full_name: '',
-    phone: '',
-  })
-  const [courses, setCourses] = useState<Course[]>([])
-  // Course categories array
-  const courseCategories = [
-    'Programming',
-    'Mathematics',
-    'Science',
-    'Language',
-    'Business',
-    'Arts',
-    'Engineering',
-    'Health',
-    'Social Studies',
-    'Other'
-  ]
-
-  const [courseForm, setCourseForm] = useState({
+    email: '',
+  });
+  const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [successMessage, setSuccessMessage] = useState('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [activeTab, setActiveTab] = useState<'profile' | 'account' | 'courses'>('profile');
+  const [userCourses, setUserCourses] = useState<any[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+  const [showCourseModal, setShowCourseModal] = useState(false);
+  const [courseFormData, setCourseFormData] = useState({
     title: '',
     description: '',
-    category: 'Programming',
-    duration: '',
-    max_students: '',
-    level: 'beginner',
-    course_image_url: ''
-  })
-  const [isCreatingCourse, setIsCreatingCourse] = useState(false)
-  const [courseLoading, setCourseLoading] = useState(false)
-  const [avatarFile, setAvatarFile] = useState<File | null>(null)
-  const [courseImageFile, setCourseImageFile] = useState<File | null>(null)
-  const [avatarPreview, setAvatarPreview] = useState<string>('')
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'courses'>('profile')
+    difficulty_level: 'Beginner',
+    duration_hours: 0,
+    language: 'English',
+    has_certificate: false,
+    is_featured: false
+  });
+  const [courseErrors, setCourseErrors] = useState<Record<string, string>>({});
+  const [courseSubmitting, setCourseSubmitting] = useState(false);
+  const [courseSuccess, setCourseSuccess] = useState(false);
+  const [courseThumbnail, setCourseThumbnail] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const courseThumbnailRef = useRef<HTMLInputElement>(null);
 
+  // Fetch user profile on component mount
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        navigate('/login', { replace: true })
+    void fetchProfile();
+  }, []);
+  
+  // Fetch user courses when the courses tab is selected
+  useEffect(() => {
+    if (activeTab === 'courses' && userProfile) {
+      void fetchUserCourses();
+    }
+  }, [activeTab, userProfile]);
+
+  // Reset success message after 3 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
+  // Track form changes
+  useEffect(() => {
+    if (userProfile) {
+      const initialFormData = {
+        full_name: userProfile.full_name || '',
+        email: userProfile.email || '',
+      };
+      
+      const hasFormChanges = 
+        formData.full_name !== initialFormData.full_name ||
+        formData.email !== initialFormData.email;
+      
+      setHasChanges(hasFormChanges || !!avatarFile);
+    }
+  }, [formData, avatarFile, userProfile]);
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        navigate('/login', { replace: true });
+        return;
       }
-    })
-
-    fetchProfile()
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [])
-
-  useEffect(() => {
-    if (userProfile?.role === 'teacher') {
-      fetchTeacherCourses()
-    }
-  }, [userProfile])
-
-  const fetchTeacherCourses = async () => {
-    if (!userProfile?.id) return
-    
-    try {
-      setCourseLoading(true)
-      const { data, error } = await supabase
-        .from('courses')
-        .select('*')
-        .eq('teacher_id', userProfile.id)
-        .order('created_at', { ascending: false })
       
-      if (error) throw error
-      setCourses(data || [])
-    } catch (err) {
-      console.error('Error fetching courses:', err)
-      setError('Failed to load courses')
+      let profileData: UserProfile | null = null;
+      
+      // Try to get data from users_view first
+      const { data: viewData, error: viewError } = await supabase
+        .from('users_view')
+        .select('id, name, role, identifier_code, subject, grade, created_at, updated_at')
+        .eq('id', user.id)
+        .single();
+      
+      // If users_view query fails, fall back to users table
+      if (viewError) {
+        console.log('Falling back to users table');
+        
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id, role, identifier_code, name, subject, grade, created_at, updated_at, full_name, avatar_url, phone')
+          .eq('id', user.id)
+          .single();
+        
+        if (userError) throw userError;
+        
+        profileData = userData as UserProfile;
+      } else {
+        // If users_view query succeeds, get additional profile data
+        profileData = viewData as UserProfile;
+        
+        // Get additional profile data that might be in the users table but not in the view
+        const { data: additionalData, error: additionalError } = await supabase
+          .from('users')
+          .select('full_name, avatar_url, phone')
+          .eq('id', user.id)
+          .single();
+        
+        // Only merge if we got additional data without error
+        if (!additionalError && additionalData) {
+          profileData = {
+            ...profileData,
+            full_name: additionalData.full_name || profileData.name || '',
+            avatar_url: additionalData.avatar_url || undefined,
+            phone: additionalData.phone || '',
+          };
+        } else {
+          // Set defaults for missing fields
+          profileData = {
+            ...profileData,
+            full_name: profileData.name || '',
+            avatar_url: undefined,
+            phone: '',
+          };
+        }
+      }
+      
+      // Get email from auth user
+      profileData = {
+        ...profileData,
+        email: user.email || '',
+      };
+      
+      if (profileData) {
+        setUserProfile(profileData);
+        setFormData({
+          full_name: profileData.full_name || profileData.name || '',
+          email: profileData.email || '',
+        });
+        
+        if (profileData.avatar_url) {
+          setAvatarPreview(profileData.avatar_url);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
     } finally {
-      setCourseLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const createCourse = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!userProfile?.id) return
+  // Form validation
+  const validateForm = (data: FormData, file?: File): FormErrors => {
+    const errors: FormErrors = {};
+    
+    // Full name validation
+    if (!data.full_name.trim()) {
+      errors.full_name = 'Full name is required';
+    } else if (data.full_name.length > 100) {
+      errors.full_name = 'Full name must be less than 100 characters';
+    }
+    
+    // Email validation
+    if (data.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(data.email)) {
+        errors.email = 'Please enter a valid email address';
+      }
+    }
+    
+    // Avatar file validation
+    if (file) {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      
+      if (!allowedTypes.includes(file.type)) {
+        errors.avatar = 'Please upload a JPG, PNG, or GIF file';
+      } else if (file.size > maxSize) {
+        errors.avatar = 'File size must be less than 5MB';
+      }
+    }
+    
+    return errors;
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error when user starts typing
+    if (errors[name as keyof FormErrors]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Validate file
+      const fileErrors = validateForm(formData, file);
+      if (fileErrors.avatar) {
+        setErrors(prev => ({ ...prev, avatar: fileErrors.avatar }));
+        return;
+      }
+      
+      // Clear previous error
+      setErrors(prev => ({ ...prev, avatar: undefined }));
+      
+      // Set file for upload
+      setAvatarFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setAvatarPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadAvatar = async (): Promise<string | null> => {
+    if (!avatarFile || !userProfile) return null;
     
     try {
-      setCourseLoading(true)
-      setError('')
-      setSuccess('')
+      setIsUploading(true);
       
-      // First create the course to get the ID
+      // Create a unique file path
+      const fileExt = avatarFile.name.split('.').pop();
+      const filePath = `avatars/${userProfile.id}-${Date.now()}.${fileExt}`;
+      
+      // Upload the file
+      const { error: uploadError } = await supabase.storage
+        .from('profiles')
+        .upload(filePath, avatarFile, {
+          cacheControl: '3600',
+          upsert: true,
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      // Get the public URL
+      const { data } = supabase.storage
+        .from('profiles')
+        .getPublicUrl(filePath);
+      
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      setErrors(prev => ({ ...prev, avatar: 'Failed to upload image' }));
+      return null;
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!userProfile) return;
+    
+    // Validate form
+    const validationErrors = validateForm(formData, avatarFile || undefined);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      
+      // Upload avatar if changed
+      let avatarUrl = userProfile.avatar_url;
+      if (avatarFile) {
+        const newAvatarUrl = await uploadAvatar();
+        if (newAvatarUrl) {
+          avatarUrl = newAvatarUrl;
+        }
+      }
+      
+      // Update profile
+      const { error } = await supabase
+        .from('users')
+        .update({
+          full_name: formData.full_name,
+          avatar_url: avatarUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userProfile.id);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setUserProfile(prev => prev ? {
+        ...prev,
+        full_name: formData.full_name,
+        avatar_url: avatarUrl,
+        updated_at: new Date().toISOString(),
+      } : null);
+      
+      // Reset file state
+      setAvatarFile(null);
+      
+      // Show success message
+      setSuccessMessage('Profile updated successfully');
+      
+      // Reset changes flag
+      setHasChanges(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setErrors({ ...errors, full_name: 'Failed to update profile' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancel = () => {
+    // Show confirmation if there are changes
+    if (hasChanges) {
+      if (!window.confirm('You have unsaved changes. Are you sure you want to discard them?')) {
+        return;
+      }
+    }
+    
+    // Reset form data to original values
+    if (userProfile) {
+      setFormData({
+        full_name: userProfile.full_name || '',
+        email: userProfile.email || '',
+      });
+    }
+    
+    // Reset avatar preview
+    if (userProfile?.avatar_url) {
+      setAvatarPreview(userProfile.avatar_url);
+    } else {
+      setAvatarPreview(null);
+    }
+    
+    // Clear file input
+    setAvatarFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    
+    // Clear errors
+    setErrors({});
+    
+    // Reset changes flag
+    setHasChanges(false);
+  };
+
+  const handleBack = () => {
+    if (hasChanges) {
+      if (window.confirm('You have unsaved changes. Are you sure you want to go back?')) {
+        navigate(-1);
+      }
+    } else {
+      navigate(-1);
+    }
+  };
+  
+  // Handle course thumbnail change
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Validate file
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        setCourseErrors(prev => ({ ...prev, thumbnail: 'File size must be less than 5MB' }));
+        return;
+      }
+      
+      if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
+        setCourseErrors(prev => ({ ...prev, thumbnail: 'Please upload a JPG, PNG, or GIF file' }));
+        return;
+      }
+      
+      // Clear previous error
+      setCourseErrors(prev => ({ ...prev, thumbnail: undefined }));
+      
+      // Set file for upload
+      setCourseThumbnail(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setThumbnailPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  // Handle course form input change
+  const handleCourseInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target as HTMLInputElement;
+    
+    // Handle checkbox inputs
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setCourseFormData(prev => ({ ...prev, [name]: checked }));
+    } else {
+      setCourseFormData(prev => ({ ...prev, [name]: value }));
+    }
+    
+    // Clear error when user starts typing
+    if (courseErrors[name]) {
+      setCourseErrors(prev => ({ ...prev, [name]: undefined }));
+    }
+  };
+  
+  // Upload course thumbnail
+  const uploadCourseThumbnail = async (): Promise<string | null> => {
+    if (!courseThumbnail || !userProfile) return null;
+    
+    try {
+      // Create a unique file path
+      const fileExt = courseThumbnail.name.split('.').pop();
+      const filePath = `courses/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      
+      // Upload the file
+      const { error: uploadError } = await supabase.storage
+        .from('courses')
+        .upload(filePath, courseThumbnail, {
+          cacheControl: '3600',
+          upsert: true,
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      // Get the public URL
+      const { data } = supabase.storage
+        .from('courses')
+        .getPublicUrl(filePath);
+      
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error uploading thumbnail:', error);
+      setCourseErrors(prev => ({ ...prev, thumbnail: 'Failed to upload image' }));
+      return null;
+    }
+  };
+  
+  // Validate course form
+  const validateCourseForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    if (!courseFormData.title.trim()) {
+      errors.title = 'Title is required';
+    } else if (courseFormData.title.length > 100) {
+      errors.title = 'Title must be less than 100 characters';
+    }
+    
+    if (!courseFormData.description.trim()) {
+      errors.description = 'Description is required';
+    }
+    
+    if (courseFormData.duration_hours <= 0) {
+      errors.duration_hours = 'Duration must be greater than 0';
+    }
+    
+    setCourseErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+  
+  // Handle course form submission
+  const handleCourseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!userProfile) return;
+    if (!validateCourseForm()) return;
+    
+    try {
+      setCourseSubmitting(true);
+      
+      // Upload thumbnail if provided
+      let thumbnailUrl = null;
+      if (courseThumbnail) {
+        thumbnailUrl = await uploadCourseThumbnail();
+      }
+      
+      // Create the course
       const { data, error } = await supabase
         .from('courses')
         .insert([
           {
-            title: courseForm.title,
-            description: courseForm.description,
-            teacher_id: userProfile.id,
-            status: 'draft',
-            category: courseForm.category,
-            duration: courseForm.duration ? parseInt(courseForm.duration) : undefined,
-            max_students: courseForm.max_students ? parseInt(courseForm.max_students) : undefined,
-            level: courseForm.level || 'beginner'
+            title: courseFormData.title,
+            description: courseFormData.description,
+            difficulty_level: courseFormData.difficulty_level,
+            duration_hours: courseFormData.duration_hours,
+            language: courseFormData.language,
+            has_certificate: courseFormData.has_certificate,
+            is_featured: courseFormData.is_featured,
+            thumbnail_url: thumbnailUrl,
+            instructor_id: userProfile.id,
+            created_by: userProfile.id,
           }
         ])
-        .select()
+        .select('id');
       
-      if (error) throw error
+      if (error) throw error;
       
-      // If we have a course image, upload it and update the course
-      if (courseImageFile && data && data.length > 0) {
-        const courseId = data[0].id
-        const imageUrl = await uploadCourseImage(courseId)
-        
-        // Update the course with the image URL
-        const { error: updateError } = await supabase
-          .from('courses')
-          .update({ course_image_url: imageUrl })
-          .eq('id', courseId)
-          
-        if (updateError) throw updateError
-        
-        // Update the local data with the image URL
-        if (data[0]) {
-          data[0].course_image_url = imageUrl
-        }
-      }
-      
-      setCourses([...(data || []), ...courses])
-      setCourseForm({
+      // Show success message and reset form
+      setCourseSuccess(true);
+      setCourseFormData({
         title: '',
         description: '',
-        category: 'Programming',
-        duration: '',
-        max_students: '',
-        level: 'beginner',
-        course_image_url: ''
-      })
-      setCourseImageFile(null)
-      setIsCreatingCourse(false)
-      setSuccess('Course created successfully')
-      // Show toast notification
-      setToastMessage('Course created successfully!')
-      setToastType('success')
-      setToastVisible(true)
-      fetchTeacherCourses()
-    } catch (err) {
-      console.error('Error creating course:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create course'
-      setError(errorMessage)
-      // Show error toast
-      setToastMessage(errorMessage)
-      setToastType('error')
-      setToastVisible(true)
+        difficulty_level: 'Beginner',
+        duration_hours: 0,
+        language: 'English',
+        has_certificate: false,
+        is_featured: false
+      });
+      setCourseThumbnail(null);
+      setThumbnailPreview(null);
+      
+      // Refresh courses after a short delay
+      setTimeout(() => {
+        void fetchUserCourses();
+        setCourseSuccess(false);
+        setShowCourseModal(false);
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error creating course:', error);
+      setCourseErrors(prev => ({ ...prev, general: 'Failed to create course' }));
     } finally {
-      setCourseLoading(false)
+      setCourseSubmitting(false);
     }
-  }
-
-  const deleteCourse = async (courseId: string) => {
-    try {
-      setCourseLoading(true)
-      setError('')
-      setSuccess('')
-      
-      const { error } = await supabase
-        .from('courses')
-        .delete()
-        .eq('id', courseId)
-      
-      if (error) throw error
-      
-      setCourses(courses.filter(course => course.id !== courseId))
-      setSuccess('Course deleted successfully')
-      // Show toast notification
-      setToastMessage('Course deleted successfully!')
-      setToastType('success')
-      setToastVisible(true)
-    } catch (err) {
-      console.error('Error deleting course:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete course'
-      setError(errorMessage)
-      // Show error toast
-      setToastMessage(errorMessage)
-      setToastType('error')
-      setToastVisible(true)
-    } finally {
-      setCourseLoading(false)
-    }
-  }
-
-  const fetchProfile = async () => {
-    try {
-      setLoading(true)
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
-        navigate('/login', { replace: true })
-        return
-      }
-
-      setEmail(user.email || '')
-
-      // Fetch profile from users_view instead of users table
-      const { data, error } = await supabase
-        .from('users_view')
-        .select('id, role, identifier_code, name, phone, avatar_url, subject, grade, created_at, updated_at')
-        .eq('id', user.id)
-        .single()
-
-      if (error) throw error
-
-      const profileData = data
-
-      setUserProfile(profileData)
-      setFormData({
-        full_name: data.name || '',
-        phone: data.phone || ''
-      })
-      // avatar_url may not exist in the view, so skip avatar preview update
-
-    } catch (err) {
-      console.error('Error fetching profile:', err)
-      setError('Failed to load profile: ' + (err instanceof Error ? err.message : String(err)))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setAvatarFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  const uploadAvatar = async (userId: string): Promise<string | undefined> => {
-    if (!avatarFile) return undefined
-
-    try {
-      const fileExt = avatarFile.name.split('.').pop()
-      const fileName = `${userId}-${Math.random()}.${fileExt}`
-      const filePath = `avatars/${fileName}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, avatarFile)
-
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath)
-
-      return publicUrl
-    } catch (err) {
-      console.error('Error uploading avatar:', err)
-      throw new Error('Failed to upload avatar')
-    }
-  }
+  };
   
-  const uploadCourseImage = async (courseId: string): Promise<string | undefined> => {
-    if (!courseImageFile) return undefined
-
+  // Fetch courses for the current user
+  const fetchUserCourses = async () => {
+    if (!userProfile) return;
+    
     try {
-      // Get the current user ID for folder structure
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('User not authenticated')
+      setLoadingCourses(true);
       
-      const fileExt = courseImageFile.name.split('.').pop()
-      const fileName = `${user.id}/${courseId}-${Math.random()}.${fileExt}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('courses')
-        .upload(fileName, courseImageFile)
-
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('courses')
-        .getPublicUrl(fileName)
-
-      return publicUrl
-    } catch (err) {
-      console.error('Error uploading course image:', err)
-      throw new Error('Failed to upload course image')
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      setError('')
-      setSuccess('')
-      setUpdating(true)
-
-      if (!userProfile?.id) throw new Error('No user profile found')
-
-      // Upload new avatar if selected
-      let avatarUrl = userProfile.avatar_url
-      if (avatarFile) {
-        avatarUrl = await uploadAvatar(userProfile.id)
+      // Different queries based on user role
+      if (userProfile.role === 'student') {
+        // For students, get enrolled courses
+        const { data, error } = await supabase
+          .from('course_enrollments')
+          .select(`
+            course_id,
+            courses:course_id(
+              id, title, description, rating, 
+              review_count, student_count, duration_hours, 
+              difficulty_level, thumbnail_url, language, has_certificate
+            )
+          `)
+          .eq('user_id', userProfile.id);
+          
+        if (error) throw error;
+        
+        // Extract the courses from the enrollments data
+        const coursesData = data?.map((enrollment: any) => enrollment.courses) || [];
+        setUserCourses(coursesData);
+      } else if (userProfile.role === 'teacher') {
+        // For teachers, get courses they teach
+        const { data, error } = await supabase
+          .from('courses')
+          .select('id, title, description, rating, review_count, student_count, duration_hours, difficulty_level, thumbnail_url, language, has_certificate')
+          .eq('instructor_id', userProfile.id);
+          
+        if (error) throw error;
+        setUserCourses(data || []);
+      } else {
+        // For parents or other roles, show a different view or empty state
+        setUserCourses([]);
       }
-
-      // Update profile - note we're updating the users table, not the view
-      const { error } = await supabase
-        .from('users')
-        .update({
-          name: formData.full_name,
-          phone: formData.phone,
-          avatar_url: avatarUrl,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', userProfile.id)
-
-      if (error) throw error
-
-      setSuccess('Profile updated successfully')
-      // Show toast notification
-      setToastMessage('Profile updated successfully!')
-      setToastType('success')
-      setToastVisible(true)
-      fetchProfile() // Refresh profile data
-    } catch (err) {
-      console.error('Error updating profile:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update profile'
-      setError(errorMessage)
-      // Show error toast
-      setToastMessage(errorMessage)
-      setToastType('error')
-      setToastVisible(true)
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      setUserCourses([]);
     } finally {
-      setUpdating(false)
+      setLoadingCourses(false);
     }
-  }
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A'
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex items-center gap-2">
-          <div className="w-5 h-5 border-2 border-emerald-600/30 border-t-emerald-600 rounded-full animate-spin" />
-          <span className="text-sm text-emerald-900">Loading profile...</span>
+          <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
+          <span className="text-sm font-medium text-gray-700">Loading your profile...</span>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Toast Notification */}
-      <Toast 
-        message={toastMessage}
-        type={toastType}
-        isVisible={toastVisible}
-        onClose={() => setToastVisible(false)}
-        duration={5000}
-      />
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center">
-            <Link to="/dashboard" className="p-2 rounded-lg text-gray-600 hover:bg-gray-100">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h1 className="ml-4 text-xl font-semibold text-gray-900">My Profile</h1>
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
+      <div className="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        {/* Header with navigation */}
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <button
+              onClick={handleBack}
+              className="mb-2 flex items-center text-sm font-medium text-emerald-600 hover:text-emerald-800 transition-colors"
+              aria-label="Go back"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back to Dashboard
+            </button>
+            
+            <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Manage your personal information and account settings
+            </p>
           </div>
         </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* Success message */}
+        {successMessage && (
+          <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center text-emerald-700 animate-fadeIn">
+            <CheckCircle className="w-5 h-5 mr-2 flex-shrink-0" />
+            <span className="font-medium">{successMessage}</span>
+          </div>
+        )}
+        
+        {/* Main content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Profile Card */}
+          {/* Left column - Profile picture and role info */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-emerald-500 to-teal-500 h-32 relative">
-                {avatarPreview && (
-                  <div className="absolute left-1/2 transform -translate-x-1/2 -bottom-16">
-                    <div className="relative">
-                      <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white bg-white">
-                        <img 
-                          src={avatarPreview} 
-                          alt="Profile" 
-                          className="w-full h-full object-cover"
-                        />
+            <div className="bg-white rounded-xl shadow-sm p-6 sticky top-8">
+              <div className="flex flex-col items-center">
+                {/* Profile picture with upload */}
+                <div className="relative group mb-6">
+                  <div className="w-36 h-36 rounded-full overflow-hidden bg-gray-100 border-4 border-white shadow-lg ring-2 ring-emerald-50">
+                    {avatarPreview ? (
+                      <img 
+                        src={avatarPreview} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-emerald-50">
+                        <User className="w-16 h-16 text-emerald-300" />
                       </div>
-                      <label className="absolute bottom-1 right-1 p-1.5 bg-emerald-600 rounded-full cursor-pointer hover:bg-emerald-700 transition-colors shadow-md">
-                        <Camera className="w-4 h-4 text-white" />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleAvatarChange}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                  </div>
-                )}
-                {!avatarPreview && (
-                  <div className="absolute left-1/2 transform -translate-x-1/2 -bottom-16">
-                    <div className="relative">
-                      <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white bg-white flex items-center justify-center">
-                        <User className="w-16 h-16 text-gray-300" />
-                      </div>
-                      <label className="absolute bottom-1 right-1 p-1.5 bg-emerald-600 rounded-full cursor-pointer hover:bg-emerald-700 transition-colors shadow-md">
-                        <Camera className="w-4 h-4 text-white" />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleAvatarChange}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <div className="pt-20 pb-6 px-6">
-                <div className="text-center">
-                  <h2 className="text-xl font-bold text-gray-900">
-                    {userProfile?.name || formData.full_name || (userProfile?.role ? `${userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1)} Profile` : 'My Profile')}
-                  </h2>
-                  <div className="mt-1 flex justify-center">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                      {userProfile?.role ? userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1) : 'User'}
-                      <BadgeCheck className="w-4 h-4 ml-1" />
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm text-gray-500">
-                    {email}
-                  </p>
-                </div>
-
-                <div className="mt-6 space-y-4">
-                  <div className="flex items-center text-sm">
-                    <BadgeCheck className="w-5 h-5 text-emerald-500 mr-3" />
-                    <div>
-                      <span className="text-gray-500">ID: </span>
-                      <span className="font-medium text-gray-900">{userProfile?.identifier_code}</span>
-                    </div>
+                    )}
                   </div>
                   
-                  <div className="flex items-center text-sm">
-                    <Phone className="w-5 h-5 text-emerald-500 mr-3" />
-                    <div>
-                      <span className="text-gray-500">Phone: </span>
-                      <span className="font-medium text-gray-900">{userProfile?.phone || 'Not set'}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center text-sm">
-                    <Calendar className="w-5 h-5 text-emerald-500 mr-3" />
-                    <div>
-                      <span className="text-gray-500">Joined: </span>
-                      <span className="font-medium text-gray-900">{formatDate(userProfile?.created_at)}</span>
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="absolute bottom-0 right-0 bg-emerald-600 text-white p-2.5 rounded-full shadow-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors group-hover:scale-105 transform duration-200"
+                    aria-label="Change profile picture"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Camera className="w-5 h-5" />
+                    )}
+                  </button>
                 </div>
                 
-                {/* Stats Cards */}
-                {userProfile?.role === 'teacher' && (
-                  <div className="mt-6 grid grid-cols-1 gap-4">
-                    {/* Courses Count Card */}
-                    <div className="bg-white rounded-xl shadow-sm p-4 border">
-                      <div className="flex items-center">
-                        <div className="p-2 rounded-lg bg-blue-50">
-                          <BookOpen className="w-5 h-5 text-blue-500" />
-                        </div>
-                        <div className="ml-3">
-                          <p className="text-xs text-gray-500">Courses</p>
-                          <p className="text-lg font-semibold">{courses.length}</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Total Hours Card */}
-                    <div className="bg-white rounded-xl shadow-sm p-4 border">
-                      <div className="flex items-center">
-                        <div className="p-2 rounded-lg bg-amber-50">
-                          <Clock className="w-5 h-5 text-amber-500" />
-                        </div>
-                        <div className="ml-3">
-                          <p className="text-xs text-gray-500">Total Hours</p>
-                          <p className="text-lg font-semibold">
-                            {courses.reduce((total, course) => {
-                              return total + (course.duration || 0);
-                            }, 0)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Students Count Card - For future implementation */}
-                    <div className="bg-white rounded-xl shadow-sm p-4 border">
-                      <div className="flex items-center">
-                        <div className="p-2 rounded-lg bg-purple-50">
-                          <Users className="w-5 h-5 text-purple-500" />
-                        </div>
-                        <div className="ml-3">
-                          <p className="text-xs text-gray-500">Students</p>
-                          <p className="text-lg font-semibold">--</p>
-                        </div>
-                      </div>
-                    </div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleAvatarChange}
+                  accept="image/jpeg,image/png,image/gif"
+                  className="hidden"
+                  aria-label="Upload profile picture"
+                />
+                
+                {errors.avatar && (
+                  <div className="mt-2 p-2 bg-red-50 rounded-md text-center w-full">
+                    <p className="text-sm text-red-600 font-medium">{errors.avatar}</p>
                   </div>
                 )}
-              </div>
-            </div>
-            
-            {/* Quick Stats */}
-            <div className="mt-6 grid grid-cols-2 gap-4">
-              <div className="bg-white rounded-xl shadow-sm p-4">
-                <div className="flex items-center">
-                  <div className="p-2 rounded-lg bg-blue-50">
-                    <BookOpen className="w-5 h-5 text-blue-500" />
+                
+                {isUploading && (
+                  <div className="mt-4 w-full max-w-xs">
+                    <div className="bg-gray-200 rounded-full h-2 overflow-hidden">
+                      <div 
+                        className="bg-emerald-600 h-2 rounded-full transition-all duration-300" 
+                        style={{ width: `${uploadProgress}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-gray-500 text-center mt-1">
+                      Uploading: {uploadProgress}%
+                    </p>
                   </div>
-                  <div className="ml-3">
-                    <p className="text-xs text-gray-500">Courses</p>
-                    <p className="text-lg font-semibold">5</p>
+                )}
+                
+                {/* User role badge */}
+                <div className="mt-4 text-center">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {userProfile?.full_name || userProfile?.name || 'User'}
+                  </h2>
+                  <div className="mt-1 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800">
+                    {userProfile?.role === 'teacher' ? (
+                      <>
+                        <GraduationCap className="w-4 h-4 mr-1" />
+                        Teacher
+                      </>
+                    ) : userProfile?.role === 'student' ? (
+                      <>
+                        <Book className="w-4 h-4 mr-1" />
+                        Student
+                      </>
+                    ) : (
+                      <>
+                        <Shield className="w-4 h-4 mr-1" />
+                        Parent
+                      </>
+                    )}
                   </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    ID: {userProfile?.identifier_code}
+                  </p>
                 </div>
-              </div>
-              
-              <div className="bg-white rounded-xl shadow-sm p-4">
-                <div className="flex items-center">
-                  <div className="p-2 rounded-lg bg-amber-50">
-                    <Clock className="w-5 h-5 text-amber-500" />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-xs text-gray-500">Hours</p>
-                    <p className="text-lg font-semibold">24</p>
+                
+                {/* Quick stats */}
+                <div className="mt-6 w-full pt-6 border-t border-gray-100">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500">Member since</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {userProfile?.created_at ? (
+                          <span className="flex items-center justify-center mt-1">
+                            <Calendar className="w-4 h-4 mr-1 text-emerald-500" />
+                            {new Date(userProfile.created_at).toLocaleDateString()}
+                          </span>
+                        ) : 'N/A'}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500">Last updated</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {userProfile?.updated_at ? (
+                          <span className="flex items-center justify-center mt-1">
+                            <Clock className="w-4 h-4 mr-1 text-emerald-500" />
+                            {new Date(userProfile.updated_at).toLocaleDateString()}
+                          </span>
+                        ) : 'N/A'}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Right Column - Edit Form */}
+          
+          {/* Right column - Tabs and form */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               {/* Tabs */}
-              <div className="border-b">
-                <div className="flex">
+              <div className="border-b border-gray-200">
+                <div className="flex -mb-px" data-component-name="Profile">
                   <button
+                    type="button"
                     onClick={() => setActiveTab('profile')}
-                    className={`px-6 py-3 text-sm font-medium ${
-                      activeTab === 'profile'
-                        ? 'border-b-2 border-emerald-500 text-emerald-600'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
+                    className={`py-4 px-6 font-medium text-sm border-b-2 ${activeTab === 'profile' 
+                      ? 'border-emerald-500 text-emerald-600' 
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
                   >
                     Profile Information
                   </button>
                   <button
-                    onClick={() => setActiveTab('security')}
-                    className={`px-6 py-3 text-sm font-medium ${
-                      activeTab === 'security'
-                        ? 'border-b-2 border-emerald-500 text-emerald-600'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
+                    type="button"
+                    onClick={() => setActiveTab('courses')}
+                    className={`py-4 px-6 font-medium text-sm border-b-2 ${activeTab === 'courses' 
+                      ? 'border-emerald-500 text-emerald-600' 
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
                   >
-                    Security
+                    Courses
                   </button>
-                  {userProfile?.role === 'teacher' && (
-                    <button
-                      onClick={() => setActiveTab('courses')}
-                      className={`px-6 py-3 text-sm font-medium ${
-                        activeTab === 'courses'
-                          ? 'border-b-2 border-emerald-500 text-emerald-600'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      My Courses
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('account')}
+                    className={`py-4 px-6 font-medium text-sm border-b-2 ${activeTab === 'account' 
+                      ? 'border-emerald-500 text-emerald-600' 
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                  >
+                    Account Details
+                  </button>
                 </div>
               </div>
-
+              
+              {/* Tab content */}
               <div className="p-6">
-                {error && (
-                  <div className="mb-6 p-3 flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-lg">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <span>{error.includes('avatar_url') || error.includes('phone')
-                      ? 'Profile failed to load because your database is missing the avatar_url and/or phone columns. Please add them or remove from code/view.'
-                      : error}
-                    </span>
-                    <button
-                      className="ml-auto px-2 py-1 text-xs text-red-600 hover:underline"
-                      onClick={() => setError('')}
-                      aria-label="Dismiss error"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                )}
-
-                {success && (
-                  <div className="mb-6 p-3 flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 rounded-lg">
-                    <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                    <span>{success}</span>
-                    <button
-                      className="ml-auto px-2 py-1 text-xs text-emerald-600 hover:underline"
-                      onClick={() => setSuccess('')}
-                      aria-label="Dismiss success"
-                    >
-                      Dismiss
-                    </button>
-                    {success}
-                  </div>
-                )}
-
-                {activeTab === 'profile' && (
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">
-                        Email address
-                      </label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <input
-                          type="email"
-                          value={email}
-                          className="block w-full pl-10 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg bg-gray-50"
-                          disabled
-                        />
-                      </div>
-                      <p className="mt-1 text-xs text-gray-500">Your email address is verified and cannot be changed</p>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">
-                        Full name
-                      </label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <input
-                          type="text"
-                          value={formData.full_name}
-                          onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                          className="block w-full pl-10 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                          placeholder="Enter your full name"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">
-                        Phone number
-                      </label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <input
-                          type="tel"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          className="block w-full pl-10 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                          placeholder="Enter your phone number"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4">
-                      <button
-                        type="button"
-                        onClick={() => navigate('/dashboard')}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={updating}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:bg-emerald-400 transition-colors"
-                      >
-                        {updating ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            <span>Updating...</span>
-                          </>
-                        ) : (
-                          <span>Save changes</span>
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                {activeTab === 'courses' && userProfile?.role === 'teacher' && (
-                  <div className="space-y-6">
-                    <div className="bg-blue-50 rounded-lg p-4 flex items-start">
-                      <BookText className="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" />
+                {activeTab === 'profile' ? (
+                  <form onSubmit={handleSubmit}>
+                    <div className="space-y-6">
+                      {/* Full name field */}
                       <div>
-                        <h3 className="text-sm font-medium text-blue-800">Course Management</h3>
-                        <p className="mt-1 text-sm text-blue-700">
-                          Create and manage your courses here. Only teachers can create courses.
-                        </p>
+                        <label htmlFor="full_name" className="block text-sm font-medium text-gray-700">
+                          Full Name
+                        </label>
+                        <div className="mt-1 relative rounded-md shadow-sm">
+                          <input
+                            type="text"
+                            name="full_name"
+                            id="full_name"
+                            value={formData.full_name}
+                            onChange={handleInputChange}
+                            className={`block w-full rounded-md py-3 px-4 border ${errors.full_name 
+                              ? 'border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500' 
+                              : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'}`}
+                            placeholder="Your full name"
+                            maxLength={100}
+                          />
+                        </div>
+                        {errors.full_name && (
+                          <p className="mt-2 text-sm text-red-600">{errors.full_name}</p>
+                        )}
                       </div>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-lg font-medium text-gray-900">Your Courses</h3>
-                      <button
-                        onClick={() => setIsCreatingCourse(true)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
-                      >
-                        <PlusCircle className="w-4 h-4" />
-                        <span>Create Course</span>
-                      </button>
-                    </div>
-                    
-                    {/* Course Creation Modal */}
-                    {isCreatingCourse && (
-                      <div className="fixed inset-0 z-50 overflow-y-auto">
-                        <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                          {/* Background overlay with blur */}
-                          <div 
-                            className="fixed inset-0 bg-gray-500 bg-opacity-60 backdrop-blur-sm transition-opacity" 
-                            onClick={() => setIsCreatingCourse(false)}
-                            aria-hidden="true"
-                          ></div>
-                          
-                          {/* Modal positioning */}
-                          <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                          
-                          {/* Modal content */}
-                          <div 
-                            className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <div className="bg-white rounded-lg p-6">
-                              <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-medium text-gray-900">Create New Course</h3>
-                                <button
-                                  onClick={() => setIsCreatingCourse(false)}
-                                  className="text-gray-400 hover:text-gray-500 focus:outline-none"
-                                >
-                                  <X className="w-5 h-5" />
-                                </button>
-                              </div>
-                              <form onSubmit={createCourse} className="space-y-4">
-                                <div>
-                                  <label className="text-sm font-medium text-gray-700 mb-1 block">
-                                    Course Title
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={courseForm.title}
-                                    onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
-                                    className="block w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                                    placeholder="Enter course title"
-                                    required
-                                  />
-                                </div>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-700 mb-1 block flex items-center">
-                                      <Tag className="w-4 h-4 mr-1" />
-                                      Category
-                                    </label>
-                                    <select
-                                      value={courseForm.category}
-                                      onChange={(e) => setCourseForm({ ...courseForm, category: e.target.value })}
-                                      className="block w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                                      required
-                                    >
-                                      {courseCategories.map((category) => (
-                                        <option key={category} value={category}>{category}</option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                  
-                                  <div>
-                                    <label className="text-sm font-medium text-gray-700 mb-1 block flex items-center">
-                                      <Timer className="w-4 h-4 mr-1" />
-                                      Duration (hours)
-                                    </label>
-                                    <input
-                                      type="number"
-                                      value={courseForm.duration}
-                                      onChange={(e) => setCourseForm({ ...courseForm, duration: e.target.value })}
-                                      className="block w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                                      placeholder="e.g. 10"
-                                      min="1"
-                                    />
-                                  </div>
-                                </div>
-                                
-                                <div>
-                                  <label className="text-sm font-medium text-gray-700 mb-1 block flex items-center">
-                                    <Users className="w-4 h-4 mr-1" />
-                                    Max Students
-                                  </label>
-                                  <input
-                                    type="number"
-                                    value={courseForm.max_students}
-                                    onChange={(e) => setCourseForm({ ...courseForm, max_students: e.target.value })}
-                                    className="block w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                                    placeholder="e.g. 20"
-                                    min="1"
-                                  />
-                                </div>
-                                
-                                <div>
-                                  <label className="text-sm font-medium text-gray-700 mb-1 block flex items-center">
-                                    <ChevronDown className="w-4 h-4 mr-1" />
-                                    Difficulty Level
-                                  </label>
-                                  <select
-                                    value={courseForm.level}
-                                    onChange={(e) => setCourseForm({ ...courseForm, level: e.target.value as 'beginner' | 'intermediate' | 'advanced' })}
-                                    className="block w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                                  >
-                                    <option value="beginner">Beginner</option>
-                                    <option value="intermediate">Intermediate</option>
-                                    <option value="advanced">Advanced</option>
-                                  </select>
-                                </div>
-                                
-                                <div>
-                                  <label className="text-sm font-medium text-gray-700 mb-1 block flex items-center">
-                                    <Image className="w-4 h-4 mr-1" />
-                                    Course Image
-                                  </label>
-                                  <div className="mt-1 flex items-center">
-                                    <label
-                                      htmlFor="course-image-upload"
-                                      className="flex items-center justify-center w-full h-32 px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-md appearance-none cursor-pointer hover:border-emerald-500 focus:outline-none">
-                                      <span className="flex flex-col items-center space-y-2">
-                                        {courseImageFile ? (
-                                          <>
-                                            <span className="font-medium text-gray-600">
-                                              {courseImageFile.name} ({Math.round(courseImageFile.size / 1024)} KB)
-                                            </span>
-                                            <span className="text-xs text-gray-500">Click to change</span>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Camera className="w-6 h-6 text-gray-400" />
-                                            <span className="font-medium text-gray-600">Click to upload course image</span>
-                                            <span className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</span>
-                                          </>
-                                        )}
-                                      </span>
-                                      <input
-                                        id="course-image-upload"
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        onChange={(e) => {
-                                          if (e.target.files && e.target.files[0]) {
-                                            setCourseImageFile(e.target.files[0])
-                                          }
-                                        }}
-                                      />
-                                    </label>
-                                  </div>
-                                </div>
-                                
-                                <div>
-                                  <label className="text-sm font-medium text-gray-700 mb-1 block">
-                                    Course Description
-                                  </label>
-                                  <textarea
-                                    value={courseForm.description}
-                                    onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })}
-                                    className="block w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                                    placeholder="Enter course description"
-                                    rows={4}
-                                    required
-                                  />
-                                </div>
-                                <div className="flex justify-end gap-3 pt-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => setIsCreatingCourse(false)}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300"
-                                  >
-                                    Cancel
-                                  </button>
-                                  <button
-                                    type="submit"
-                                    disabled={courseLoading}
-                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:bg-emerald-400 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
-                                  >
-                                    {courseLoading ? (
-                                      <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        <span>Creating...</span>
-                                      </>
-                                    ) : (
-                                      <span>Create Course</span>
-                                    )}
-                                  </button>
-                                </div>
-                              </form>
-                            </div>
+                      
+                      {/* Email field */}
+                      <div>
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                          Email Address
+                        </label>
+                        <div className="mt-1 relative rounded-md shadow-sm">
+                          <input
+                            type="email"
+                            name="email"
+                            id="email"
+                            value={formData.email}
+                            onChange={handleInputChange}
+                            className={`block w-full rounded-md py-3 px-4 bg-gray-50 border ${errors.email 
+                              ? 'border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500' 
+                              : 'border-gray-300'}`}
+                            placeholder="your.email@example.com"
+                            disabled
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">Email address cannot be changed here. Contact support for assistance.</p>
+                        {errors.email && (
+                          <p className="mt-2 text-sm text-red-600">{errors.email}</p>
+                        )}
+                      </div>
+                      
+                      {/* Subject/Grade info (read-only) */}
+                      {userProfile?.role === 'teacher' && userProfile.subject && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Subject</label>
+                          <div className="mt-1 py-3 px-4 bg-gray-50 rounded-md border border-gray-200">
+                            {userProfile.subject}
                           </div>
                         </div>
-                      </div>
-                    )}
-
-                    {courseLoading && !isCreatingCourse ? (
-                      <div className="flex justify-center py-8">
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 border-2 border-emerald-600/30 border-t-emerald-600 rounded-full animate-spin" />
-                          <span className="text-sm text-emerald-900">Loading courses...</span>
+                      )}
+                      
+                      {userProfile?.role === 'student' && userProfile.grade && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Grade</label>
+                          <div className="mt-1 py-3 px-4 bg-gray-50 rounded-md border border-gray-200">
+                            {userProfile.grade}
+                          </div>
                         </div>
-                      </div>
-                    ) : courses.length === 0 && !isCreatingCourse ? (
-                      <div className="text-center py-8 bg-gray-50 rounded-lg">
-                        <BookOpen className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-                        <h3 className="text-sm font-medium text-gray-900 mb-1">No courses yet</h3>
-                        <p className="text-sm text-gray-500 mb-4">Get started by creating your first course</p>
+                      )}
+                      
+                      {/* Action buttons */}
+                      <div className="flex justify-end space-x-3 pt-6 border-t">
                         <button
-                          onClick={() => setIsCreatingCourse(true)}
-                          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+                          type="button"
+                          onClick={handleCancel}
+                          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
                         >
-                          <PlusCircle className="w-4 h-4" />
-                          <span>Create Course</span>
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={isSubmitting || !hasChanges}
+                          className={`px-4 py-2 rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors ${isSubmitting || !hasChanges 
+                            ? 'bg-emerald-400 cursor-not-allowed' 
+                            : 'bg-emerald-600 hover:bg-emerald-700'}`}
+                        >
+                          {isSubmitting ? (
+                            <span className="flex items-center">
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Saving...
+                            </span>
+                          ) : (
+                            'Save Changes'
+                          )}
                         </button>
                       </div>
-                    ) : !isCreatingCourse && (
-                      <div className="space-y-4 mt-4">
-                        {courses.map((course) => (
-                          <div key={course.id} className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow">
-                            <div className="flex justify-between">
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <h4 className="text-lg font-medium text-gray-900">{course.title}</h4>
-                                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${course.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
-                                    {course.status === 'published' ? 'Published' : 'Draft'}
-                                  </span>
+                    </div>
+                  </form>
+                ) : activeTab === 'courses' ? (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">
+                      {userProfile?.role === 'teacher' ? 'Courses You Teach' : 'Your Enrolled Courses'}
+                    </h3>
+                    
+                    {loadingCourses ? (
+                      <div className="py-12 flex justify-center items-center">
+                        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                        <span className="ml-2 text-gray-600">Loading courses...</span>
+                      </div>
+                    ) : userCourses.length === 0 ? (
+                      <div className="bg-gray-50 rounded-lg p-8 text-center">
+                        <Book className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                        <h4 className="text-lg font-medium text-gray-900 mb-2">
+                          {userProfile?.role === 'teacher' 
+                            ? 'You don\'t have any courses yet' 
+                            : 'You\'re not enrolled in any courses yet'}
+                        </h4>
+                        <p className="text-gray-500 mb-6">
+                          {userProfile?.role === 'teacher'
+                            ? 'Create your first course to share your knowledge with students.'
+                            : 'Browse our course catalog and enroll in courses to start learning.'}
+                        </p>
+                        {userProfile?.role === 'teacher' ? (
+                          <button
+                            type="button"
+                            onClick={() => setShowCourseModal(true)}
+                            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                          >
+                            Create a Course
+                            <ExternalLink className="ml-2 w-4 h-4" />
+                          </button>
+                        ) : (
+                          <Link 
+                            to="/courses"
+                            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                          >
+                            Browse Courses
+                            <ExternalLink className="ml-2 w-4 h-4" />
+                          </Link>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {userCourses.map((course: any) => (
+                          <div key={course.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                            {/* Course thumbnail */}
+                            <div className="relative h-40 bg-gray-100">
+                              {course.thumbnail_url ? (
+                                <img 
+                                  src={course.thumbnail_url} 
+                                  alt={course.title} 
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-emerald-50">
+                                  <Book className="w-12 h-12 text-emerald-200" />
                                 </div>
-                                <p className="text-sm text-gray-500 mt-1">{course.description}</p>
-                                {course.course_image_url && (
-                                  <div className="mt-2 mb-3">
-                                    <img 
-                                      src={course.course_image_url} 
-                                      alt={course.title}
-                                      className="w-full h-32 object-cover rounded-lg"
-                                    />
+                              )}
+                              
+                              {/* Difficulty badge */}
+                              {course.difficulty_level && (
+                                <div className="absolute top-2 right-2 bg-white bg-opacity-90 text-xs font-medium px-2 py-1 rounded-full">
+                                  {course.difficulty_level === 'Beginner' ? (
+                                    <span className="text-green-600">{course.difficulty_level}</span>
+                                  ) : course.difficulty_level === 'Intermediate' ? (
+                                    <span className="text-yellow-600">{course.difficulty_level}</span>
+                                  ) : (
+                                    <span className="text-red-600">{course.difficulty_level}</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Course details */}
+                            <div className="p-4">
+                              <h4 className="text-lg font-medium text-gray-900 mb-1 line-clamp-1">{course.title}</h4>
+                              <p className="text-sm text-gray-500 mb-3 line-clamp-2">{course.description}</p>
+                              
+                              {/* Course stats */}
+                              <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                                {course.rating && (
+                                  <div className="flex items-center">
+                                    <Star className="w-3.5 h-3.5 text-yellow-500 mr-1" />
+                                    <span>{course.rating} ({course.review_count || 0} reviews)</span>
                                   </div>
                                 )}
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                  {course.category && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                      <Tag className="w-3 h-3 mr-1" />
-                                      {course.category}
-                                    </span>
-                                  )}
-                                  {course.level && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                                      {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
-                                    </span>
-                                  )}
-                                  {course.duration !== null && course.duration !== undefined && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
-                                      <Clock className="w-3 h-3 mr-1" />
-                                      {course.duration} hours
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-xs text-gray-400 mt-2">Created: {new Date(course.created_at).toLocaleDateString()}</p>
+                                
+                                {course.student_count !== null && (
+                                  <div className="flex items-center">
+                                    <Users className="w-3.5 h-3.5 text-gray-400 mr-1" />
+                                    <span>{course.student_count} students</span>
+                                  </div>
+                                )}
+                                
+                                {course.duration_hours && (
+                                  <div className="flex items-center">
+                                    <Clock3 className="w-3.5 h-3.5 text-gray-400 mr-1" />
+                                    <span>{course.duration_hours} hours</span>
+                                  </div>
+                                )}
+                                
+                                {course.language && (
+                                  <div className="flex items-center">
+                                    <span className="text-gray-400 mr-1">🌐</span>
+                                    <span>{course.language}</span>
+                                  </div>
+                                )}
                               </div>
-                              <div className="flex gap-2">
-                                <button className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors">
-                                  <Pencil className="w-4 h-4" />
-                                </button>
-                                <button 
-                                  onClick={() => deleteCourse(course.id)}
-                                  className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                              
+                              {/* Certificate badge */}
+                              {course.has_certificate && (
+                                <div className="mt-3 flex items-center text-xs text-emerald-600">
+                                  <Award className="w-3.5 h-3.5 mr-1" />
+                                  <span>Certificate of completion</span>
+                                </div>
+                              )}
+                              
+                              {/* Action button */}
+                              <div className="mt-4 flex justify-end">
+                                <Link 
+                                  to={userProfile?.role === 'teacher' ? `/manage-course/${course.id}` : `/courses/${course.id}`}
+                                  className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
                                 >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                  {userProfile?.role === 'teacher' ? 'Manage Course' : 'Continue Learning'}
+                                  <ArrowLeft className="ml-1 w-3 h-3 rotate-180" />
+                                </Link>
                               </div>
                             </div>
                           </div>
@@ -1056,70 +1061,327 @@ export default function Profile() {
                       </div>
                     )}
                   </div>
-                )}
-
-                {activeTab === 'profile' && (
-                  <>
-                    <div className="space-y-6">
-                      <div className="border-t border-b py-4 mt-6">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-sm font-medium text-gray-900">Change password</h3>
-                            <p className="text-sm text-gray-500 mt-1">
-                              Update your password to keep your account secure
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100"
-                            onClick={() => navigate('/reset-password')}
-                          >
-                            Change
-                          </button>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
+                      <div className="flex">
+                        <div className="flex-shrink-0">
+                          <CheckCircle className="h-5 w-5 text-yellow-400" />
                         </div>
-                      </div>
-                    </div>
-
-                    <div className="border-b py-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900">Two-factor authentication</h3>
-                          <p className="text-sm text-gray-500 mt-1">
-                            Add an extra layer of security to your account
+                        <div className="ml-3">
+                          <p className="text-sm text-yellow-700">
+                            Account settings are managed by your institution administrator. Contact support for assistance.
                           </p>
                         </div>
-                        <button
-                          type="button"
-                          className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                        >
-                          Enable
-                        </button>
                       </div>
                     </div>
-
-                    <div className="py-4">
-                      <div className="flex items-center justify-between">
+                    
+                    <div className="rounded-md bg-gray-50 p-6">
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">Account Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <h3 className="text-sm font-medium text-gray-900">Session management</h3>
-                          <p className="text-sm text-gray-500 mt-1">
-                            Manage your active sessions and sign out from other devices
+                          <p className="text-sm font-medium text-gray-500">User ID</p>
+                          <p className="mt-1 text-sm text-gray-900 font-mono bg-gray-100 p-2 rounded overflow-x-auto">
+                            {userProfile?.id}
                           </p>
                         </div>
-                        <button
-                          type="button"
-                          className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                        >
-                          Manage
-                        </button>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Identifier Code</p>
+                          <p className="mt-1 text-sm text-gray-900 font-mono bg-gray-100 p-2 rounded">
+                            {userProfile?.identifier_code}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Role</p>
+                          <p className="mt-1 text-sm text-gray-900">{userProfile?.role}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Email</p>
+                          <p className="mt-1 text-sm text-gray-900">{userProfile?.email || 'Not set'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Created At</p>
+                          <p className="mt-1 text-sm text-gray-900">
+                            {userProfile?.created_at ? new Date(userProfile.created_at).toLocaleString() : 'Unknown'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Last Updated</p>
+                          <p className="mt-1 text-sm text-gray-900">
+                            {userProfile?.updated_at ? new Date(userProfile.updated_at).toLocaleString() : 'Unknown'}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
           </div>
         </div>
       </div>
+      
+      {/* Course Creation Modal */}
+      {showCourseModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {/* Background overlay */}
+            <div 
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" 
+              aria-hidden="true"
+              onClick={() => !courseSubmitting && setShowCourseModal(false)}
+            ></div>
+            
+            {/* Modal panel */}
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+              <div className="absolute top-0 right-0 pt-4 pr-4">
+                <button
+                  type="button"
+                  className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                  onClick={() => !courseSubmitting && setShowCourseModal(false)}
+                  disabled={courseSubmitting}
+                >
+                  <span className="sr-only">Close</span>
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                    <h3 className="text-lg font-medium leading-6 text-gray-900">
+                      Create New Course
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Fill in the details below to create a new course. You can add modules and lessons after creating the course.
+                    </p>
+                    
+                    {courseSuccess && (
+                      <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-center text-green-700">
+                        <CheckCircle className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <span>Course created successfully!</span>
+                      </div>
+                    )}
+                    
+                    {courseErrors.general && (
+                      <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center text-red-700">
+                        <Info className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <span>{courseErrors.general}</span>
+                      </div>
+                    )}
+                    
+                    <form onSubmit={handleCourseSubmit} className="mt-4">
+                      <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                        {/* Course thumbnail */}
+                        <div className="sm:col-span-6">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Course Thumbnail
+                          </label>
+                          <div className="mt-1 flex items-center">
+                            <div className="relative group w-full">
+                              <div 
+                                className="flex justify-center items-center border-2 border-gray-300 border-dashed rounded-md h-48 w-full overflow-hidden bg-gray-50 hover:border-emerald-500 transition-colors cursor-pointer"
+                                onClick={() => courseThumbnailRef.current?.click()}
+                              >
+                                {thumbnailPreview ? (
+                                  <img 
+                                    src={thumbnailPreview} 
+                                    alt="Course thumbnail preview" 
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="space-y-1 text-center">
+                                    <Upload className="mx-auto h-12 w-12 text-gray-300" />
+                                    <div className="text-sm text-gray-600">
+                                      <label
+                                        htmlFor="thumbnail"
+                                        className="relative cursor-pointer rounded-md font-medium text-emerald-600 hover:text-emerald-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-emerald-500"
+                                      >
+                                        <span>Upload a thumbnail</span>
+                                      </label>
+                                      <p className="pl-1">or drag and drop</p>
+                                    </div>
+                                    <p className="text-xs text-gray-500">PNG, JPG, GIF up to 5MB</p>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              <input
+                                type="file"
+                                ref={courseThumbnailRef}
+                                onChange={handleThumbnailChange}
+                                accept="image/jpeg,image/png,image/gif"
+                                className="hidden"
+                                id="thumbnail"
+                              />
+                            </div>
+                          </div>
+                          {courseErrors.thumbnail && (
+                            <p className="mt-2 text-sm text-red-600">{courseErrors.thumbnail}</p>
+                          )}
+                        </div>
+                        
+                        {/* Course title */}
+                        <div className="sm:col-span-6">
+                          <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+                            Course Title *
+                          </label>
+                          <div className="mt-1">
+                            <input
+                              type="text"
+                              name="title"
+                              id="title"
+                              value={courseFormData.title}
+                              onChange={handleCourseInputChange}
+                              placeholder="Enter a descriptive title for your course"
+                              className={`block w-full rounded-md sm:text-sm border-2 py-3 h-12 ${courseErrors.title ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500 hover:border-emerald-300'}`}
+                              maxLength={100}
+                              required
+                            />
+                          </div>
+                          {courseErrors.title && (
+                            <p className="mt-2 text-sm text-red-600">{courseErrors.title}</p>
+                          )}
+                        </div>
+                        
+                        {/* Course description */}
+                        <div className="sm:col-span-6">
+                          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                            Description *
+                          </label>
+                          <div className="mt-1">
+                            <textarea
+                              id="description"
+                              name="description"
+                              rows={4}
+                              value={courseFormData.description}
+                              onChange={handleCourseInputChange}
+                              placeholder="Describe what students will learn in this course"
+                              className={`block w-full rounded-md sm:text-sm border-2 py-3 ${courseErrors.description ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500 hover:border-emerald-300'}`}
+                              required
+                            />
+                          </div>
+                          {courseErrors.description && (
+                            <p className="mt-2 text-sm text-red-600">{courseErrors.description}</p>
+                          )}
+                        </div>
+                        
+                        {/* Difficulty level */}
+                        <div className="sm:col-span-3">
+                          <label htmlFor="difficulty_level" className="block text-sm font-medium text-gray-700">
+                            Difficulty Level
+                          </label>
+                          <div className="mt-1">
+                            <select
+                              id="difficulty_level"
+                              name="difficulty_level"
+                              value={courseFormData.difficulty_level}
+                              onChange={handleCourseInputChange}
+                              className="block w-full rounded-md border-2 border-gray-300 shadow-sm focus:ring-emerald-500 focus:border-emerald-500 hover:border-emerald-300 transition-colors sm:text-sm py-3 h-12"
+                            >
+                              <option value="Beginner">Beginner</option>
+                              <option value="Intermediate">Intermediate</option>
+                              <option value="Advanced">Advanced</option>
+                            </select>
+                          </div>
+                        </div>
+                        
+                        {/* Duration hours */}
+                        <div className="sm:col-span-3">
+                          <label htmlFor="duration_hours" className="block text-sm font-medium text-gray-700">
+                            Duration (hours) *
+                          </label>
+                          <div className="mt-1">
+                            <input
+                              type="number"
+                              name="duration_hours"
+                              id="duration_hours"
+                              min="1"
+                              value={courseFormData.duration_hours}
+                              onChange={handleCourseInputChange}
+                              placeholder="Estimated hours to complete"
+                              className={`block w-full rounded-md sm:text-sm border-2 py-3 h-12 ${courseErrors.duration_hours ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500 hover:border-emerald-300'}`}
+                              required
+                            />
+                          </div>
+                          {courseErrors.duration_hours && (
+                            <p className="mt-2 text-sm text-red-600">{courseErrors.duration_hours}</p>
+                          )}
+                        </div>
+                        
+                        {/* Language */}
+                        <div className="sm:col-span-3">
+                          <label htmlFor="language" className="block text-sm font-medium text-gray-700">
+                            Language
+                          </label>
+                          <div className="mt-1">
+                            <select
+                              id="language"
+                              name="language"
+                              value={courseFormData.language}
+                              onChange={handleCourseInputChange}
+                              className="block w-full rounded-md border-2 border-gray-300 shadow-sm focus:ring-emerald-500 focus:border-emerald-500 hover:border-emerald-300 transition-colors sm:text-sm py-4 h-16"
+                            >
+                              <option value="English">English</option>
+                              <option value="Spanish">Spanish</option>
+                              <option value="French">French</option>
+                              <option value="German">German</option>
+                              <option value="Chinese">Chinese</option>
+                              <option value="Japanese">Japanese</option>
+                              <option value="Arabic">Arabic</option>
+                              <option value="Russian">Russian</option>
+                            </select>
+                          </div>
+                        </div>
+                        
+                        {/* Certificate checkbox */}
+                        <div className="sm:col-span-3">
+                          <div className="flex items-center">
+                            <input
+                              id="has_certificate"
+                              name="has_certificate"
+                              type="checkbox"
+                              checked={courseFormData.has_certificate}
+                              onChange={handleCourseInputChange}
+                              className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="has_certificate" className="ml-2 block text-sm text-gray-700">
+                              Offers Certificate
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-8 flex justify-end">
+                        <button
+                          type="button"
+                          className="mr-3 inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                          onClick={() => setShowCourseModal(false)}
+                          disabled={courseSubmitting}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 border border-transparent rounded-md shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:bg-emerald-400 disabled:cursor-not-allowed"
+                          disabled={courseSubmitting}
+                        >
+                          {courseSubmitting ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Creating...
+                            </>
+                          ) : 'Create Course'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
