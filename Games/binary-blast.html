@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Blast: Coding Adventure</title>
+    <style>
+        :root {
+            --primary-color: #4285F4;
+            --secondary-color: #34A853;
+            --accent-color: #FBBC05;
+            --danger-color: #EA4335;
+            --background-color: #F5F5F5;
+            --text-color: #333333;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+        }
+        
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: var(--secondary-color);
+            font-size: 1.2rem;
+        }
+        
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background-color: #e0e0e0;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .game-section {
+            display: none;
+        }
+        
+        .game-section.active {
+            display: block;
+        }
+        
+        .level-indicator {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+        
+        .score-display {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        
+        .challenge-container {
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .challenge-title {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+        
+        .challenge-description {
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        
+        .blocks-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        
+        .code-block {
+            padding: 10px 15px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            font-size: 1rem;
+            user-select: none;
+        }
+        
+        .code-block:hover {
+            transform: scale(1.05);
+        }
+        
+        .code-block.selected {
+            outline: 3px solid var(--accent-color);
+        }
+        
+        .sequence-container {
+            min-height: 100px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .sequence-placeholder {
+            color: #999;
+            font-style: italic;
+        }
+        
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .feedback {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            height: 30px;
+            margin-bottom: 15px;
+        }
+        
+        .feedback.success {
+            color: var(--secondary-color);
+        }
+        
+        .feedback.error {
+            color: var(--danger-color);
+        }
+        
+        /* Binary game styles */
+        .binary-challenge {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .binary-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+        
+        .binary-options {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .binary-option {
+            padding: 15px 25px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1.2rem;
+        }
+        
+        .binary-option:hover {
+            background-color: #d0d0d0;
+            transform: scale(1.05);
+        }
+        
+        .binary-converter {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .binary-bits {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .bit {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #e0e0e0;
+            border-radius: 8px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .bit.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .bit-values {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .bit-value {
+            width: 50px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .decimal-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        /* Animation area */
+        .animation-area {
+            width: 100%;
+            height: 200px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .character {
+            width: 50px;
+            height: 50px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            transition: all 0.5s;
+        }
+        
+        .goal {
+            width: 50px;
+            height: 50px;
+            background-color: var(--secondary-color);
+            border-radius: 10px;
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            border: 3px dashed var(--accent-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        /* Instructions */
+        .instructions {
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .instructions h3 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        
+        .instructions p {
+            margin-bottom: 10px;
+        }
+        
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        
+        .modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .modal-title {
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+        
+        .modal-message {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        
+        .modal-btn {
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Binary Blast: Coding Adventure</h1>
+            <div class="subtitle">Learn coding concepts and binary numbers!</div>
+        </header>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="algorithm">Algorithm Adventure</div>
+            <div class="tab" data-tab="binary">Binary Blast</div>
+        </div>
+        
+        <div class="game-section active" id="algorithm-section">
+            <div class="score-display">
+                <div>Score: <span id="algo-score">0</span></div>
+                <div>Level: <span id="algo-level">1</span></div>
+            </div>
+            
+            <div class="challenge-container">
+                <div class="challenge-title" id="algo-challenge-title">Create a sequence to move the character</div>
+                <div class="challenge-description" id="algo-challenge-description">
+                    Arrange the blocks in the correct order to solve the challenge.
+                </div>
+            </div>
+            
+            <div class="animation-area">
+                <div class="character" id="character"></div>
+                <div class="goal" id="goal">🏁</div>
+            </div>
+            
+            <div class="sequence-container" id="sequence-container">
+                <div class="sequence-placeholder">Drag blocks here to create your sequence</div>
+            </div>
+            
+            <div class="blocks-container" id="blocks-container">
+                <!-- Blocks will be added by JavaScript -->
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-danger" id="reset-btn">Reset</button>
+                <button class="btn btn-primary" id="run-btn">Run Sequence</button>
+            </div>
+            
+            <div class="feedback" id="algo-feedback"></div>
+            
+            <div class="instructions">
+                <h3>How to Play:</h3>
+                <p>1. Click on code blocks to add them to your sequence.</p>
+                <p>2. Arrange the blocks in the correct order to solve the challenge.</p>
+                <p>3. Click "Run Sequence" to see if your solution works.</p>
+                <p>4. Complete challenges to earn points and level up!</p>
+            </div>
+        </div>
+        
+        <div class="game-section" id="binary-section">
+            <div class="score-display">
+                <div>Score: <span id="binary-score">0</span></div>
+                <div>Level: <span id="binary-level">1</span></div>
+            </div>
+            
+            <div class="challenge-container">
+                <div class="challenge-title">Binary Number Challenge</div>
+                <div class="challenge-description" id="binary-challenge-description">
+                    Convert the decimal number to binary or binary to decimal.
+                </div>
+            </div>
+            
+            <div class="binary-challenge" id="binary-to-decimal">
+                <h3>Convert this binary number to decimal:</h3>
+                <div class="binary-number" id="binary-number">10101</div>
+                <div class="binary-options" id="decimal-options">
+                    <!-- Options will be added by JavaScript -->
+                </div>
+            </div>
+            
+            <div class="binary-challenge" id="decimal-to-binary" style="display: none;">
+                <h3>Convert this decimal number to binary:</h3>
+                <div class="binary-number" id="decimal-number">21</div>
+                <div class="binary-converter">
+                    <div class="bit-values">
+                        <div class="bit-value">16</div>
+                        <div class="bit-value">8</div>
+                        <div class="bit-value">4</div>
+                        <div class="bit-value">2</div>
+                        <div class="bit-value">1</div>
+                    </div>
+                    <div class="binary-bits">
+                        <div class="bit" data-value="16">0</div>
+                        <div class="bit" data-value="8">0</div>
+                        <div class="bit" data-value="4">0</div>
+                        <div class="bit" data-value="2">0</div>
+                        <div class="bit" data-value="1">0</div>
+                    </div>
+                    <div class="decimal-value">Your answer: <span id="user-binary-value">0</span></div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="check-binary-btn">Check Answer</button>
+                </div>
+            </div>
+            
+            <div class="feedback" id="binary-feedback"></div>
+            
+            <div class="instructions">
+                <h3>How to Play:</h3>
+                <p>1. In "Binary to Decimal" mode, select the correct decimal value for the binary number shown.</p>
+                <p>2. In "Decimal to Binary" mode, click the bits to create the binary representation of the decimal number.</p>
+                <p>3. Each correct answer earns you points!</p>
+                <p>4. Remember: Binary uses powers of 2 (1, 2, 4, 8, 16, 32, ...)</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal for level up and achievements -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="modal-title">Level Up!</div>
+            <div class="modal-message" id="modal-message">You've reached level 2!</div>
+            <button class="modal-btn" id="modal-btn">Continue</button>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        const gameState = {
+            algorithm: {
+                score: 0,
+                level: 1,
+                sequence: [],
+                challenges: [
+                    {
+                        title: "Move Right",
+                        description: "Create a sequence to move the character to the right side of the screen.",
+                        blocks: ["moveRight", "moveRight", "moveRight"],
+                        solution: ["moveRight", "moveRight", "moveRight"]
+                    },
+                    {
+                        title: "Up and Down",
+                        description: "Move the character up and then down.",
+                        blocks: ["moveUp", "moveDown", "moveRight"],
+                        solution: ["moveUp", "moveDown"]
+                    },
+                    {
+                        title: "Make a Square",
+                        description: "Move the character in a square pattern.",
+                        blocks: ["moveRight", "moveDown", "moveLeft", "moveUp"],
+                        solution: ["moveRight", "moveDown", "moveLeft", "moveUp"]
+                    },
+                    {
+                        title: "Repeat Pattern",
+                        description: "Use the repeat block to move right efficiently.",
+                        blocks: ["repeat2", "repeat3", "moveRight"],
+                        solution: ["repeat3", "moveRight"]
+                    },
+                    {
+                        title: "Complex Pattern",
+                        description: "Create a zigzag pattern using the available blocks.",
+                        blocks: ["moveRight", "moveUp", "moveRight", "moveDown", "moveRight"],
+                        solution: ["moveRight", "moveUp", "moveRight", "moveDown", "moveRight"]
+                    }
+                ],
+                currentChallenge: 0
+            },
+            binary: {
+                score: 0,
+                level: 1,
+                mode: "binary-to-decimal", // or "decimal-to-binary"
+                currentValue: 0,
+                userAnswer: 0
+            }
+        };
+        
+        // Block definitions
+        const blockDefinitions = {
+            moveRight: {
+                text: "Move Right",
+                color: "#4285F4",
+                action: (character) => {
+                    const currentLeft = parseInt(window.getComputedStyle(character).left);
+                    character.style.left = (currentLeft + 50) + "px";
+                }
+            },
+            moveLeft: {
+                text: "Move Left",
+                color: "#EA4335",
+                action: (character) => {
+                    const currentLeft = parseInt(window.getComputedStyle(character).left);
+                    character.style.left = Math.max(0, currentLeft - 50) + "px";
+                }
+            },
+            moveUp: {
+                text: "Move Up",
+                color: "#34A853",
+                action: (character) => {
+                    const currentBottom = parseInt(window.getComputedStyle(character).bottom);
+                    character.style.bottom = (currentBottom + 50) + "px";
+                }
+            },
+            moveDown: {
+                text: "Move Down",
+                color: "#FBBC05",
+                action: (character) => {
+                    const currentBottom = parseInt(window.getComputedStyle(character).bottom);
+                    character.style.bottom = Math.max(0, currentBottom - 50) + "px";
+                }
+            },
+            repeat2: {
+                text: "Repeat 2 Times",
+                color: "#9C27B0",
+                isContainer: true,
+                repeats: 2
+            },
+            repeat3: {
+                text: "Repeat 3 Times",
+                color: "#9C27B0",
+                isContainer: true,
+                repeats: 3
+            }
+        };
+        
+        // Initialize the game
+        function initGame() {
+            // Set up tab switching
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.dataset.tab;
+                    
+                    // Update active tab
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // Update active section
+                    document.querySelectorAll('.game-section').forEach(section => {
+                        section.classList.remove('active');
+                    });
+                    document.getElementById(`${tabId}-section`).classList.add('active');
+                });
+            });
+            
+            // Initialize algorithm game
+            initAlgorithmGame();
+            
+            // Initialize binary game
+            initBinaryGame();
+            
+            // Set up modal
+            document.getElementById('modal-btn').addEventListener('click', () => {
+                document.getElementById('modal').classList.remove('active');
+            });
+        }
+        
+        // Initialize algorithm game
+        function initAlgorithmGame() {
+            const algo = gameState.algorithm;
+            
+            // Set up reset button
+            document.getElementById('reset-btn').addEventListener('click', () => {
+                resetAlgorithmChallenge();
+            });
+            
+            // Set up run button
+            document.getElementById('run-btn').addEventListener('click', () => {
+                runAlgorithmSequence();
+            });
+            
+            // Load first challenge
+            loadAlgorithmChallenge(algo.currentChallenge);
+        }
+        
+        // Load algorithm challenge
+        function loadAlgorithmChallenge(challengeIndex) {
+            const algo = gameState.algorithm;
+            const challenge = algo.challenges[challengeIndex];
+            
+            // Reset sequence
+            algo.sequence = [];
+            
+            // Update challenge title and description
+            document.getElementById('algo-challenge-title').textContent = challenge.title;
+            document.getElementById('algo-challenge-description').textContent = challenge.description;
+            
+            // Reset character position
+            const character = document.getElementById('character');
+            character.style.left = "20px";
+            character.style.bottom = "20px";
+            
+            // Reset goal appearance
+            const goal = document.getElementById('goal');
+            goal.style.backgroundColor = 'var(--secondary-color)';
+            
+            // Clear sequence container
+            const sequenceContainer = document.getElementById('sequence-container');
+            sequenceContainer.innerHTML = '<div class="sequence-placeholder">Drag blocks here to create your sequence</div>';
+            
+            // Add blocks
+            const blocksContainer = document.getElementById('blocks-container');
+            blocksContainer.innerHTML = '';
+            
+            challenge.blocks.forEach(blockId => {
+                const blockDef = blockDefinitions[blockId];
+                const block = document.createElement('div');
+                block.className = 'code-block';
+                block.textContent = blockDef.text;
+                block.style.backgroundColor = blockDef.color;
+                block.dataset.blockId = blockId;
+                
+                block.addEventListener('click', () => {
+                    addBlockToSequence(blockId);
+                });
+                
+                blocksContainer.appendChild(block);
+            });
+            
+            // Clear feedback
+            document.getElementById('algo-feedback').textContent = '';
+        }
+        
+        // Add block to sequence
+        function addBlockToSequence(blockId) {
+            const algo = gameState.algorithm;
+            const sequenceContainer = document.getElementById('sequence-container');
+            
+            // Remove placeholder if it exists
+            const placeholder = sequenceContainer.querySelector('.sequence-placeholder');
+            if (placeholder) {
+                sequenceContainer.removeChild(placeholder);
+            }
+            
+            // Create block element
+            const blockDef = blockDefinitions[blockId];
+            const block = document.createElement('div');
+            block.className = 'code-block';
+            block.textContent = blockDef.text;
+            block.style.backgroundColor = blockDef.color;
+            block.dataset.blockId = blockId;
+            
+            // Add click event to remove from sequence
+            block.addEventListener('click', () => {
+                sequenceContainer.removeChild(block);
+                algo.sequence = algo.sequence.filter((_, index) => index !== algo.sequence.indexOf(blockId));
+                
+                // Add placeholder if sequence is empty
+                if (sequenceContainer.children.length === 0) {
+                    sequenceContainer.innerHTML = '<div class="sequence-placeholder">Drag blocks here to create your sequence</div>';
+                }
+            });
+            
+            // Add to container and sequence
+            sequenceContainer.appendChild(block);
+            algo.sequence.push(blockId);
+        }
+        
+        // Run algorithm sequence
+        function runAlgorithmSequence() {
+            const algo = gameState.algorithm;
+            const character = document.getElementById('character');
+            const feedback = document.getElementById('algo-feedback');
+            
+            // Check if sequence is empty
+            if (algo.sequence.length === 0) {
+                feedback.textContent = 'Add some blocks to your sequence first!';
+                feedback.className = 'feedback error';
+                return;
+            }
+            
+            // Reset character position
+            character.style.left = "20px";
+            character.style.bottom = "20px";
+            
+            // Execute sequence with delay
+            let delay = 0;
+            const delayStep = 600; // milliseconds between actions
+            
+            algo.sequence.forEach(blockId => {
+                const blockDef = blockDefinitions[blockId];
+                
+                setTimeout(() => {
+                    blockDef.action(character);
+                    
+                    // Check if character reached the goal after each move
+                    const characterRect = character.getBoundingClientRect();
+                    const goalRect = document.getElementById('goal').getBoundingClientRect();
+                    
+                    if (characterRect.right >= goalRect.left && 
+                        characterRect.left <= goalRect.right &&
+                        characterRect.bottom >= goalRect.top &&
+                        characterRect.top <= goalRect.bottom) {
+                        
+                        // Visual feedback for reaching the goal
+                        document.getElementById('goal').style.backgroundColor = '#FBBC05';
+                    }
+                }, delay);
+                
+                delay += delayStep;
+            });
+            
+            // Check solution after animation completes
+            setTimeout(() => {
+                checkAlgorithmSolution();
+            }, delay);
+        }
+        
+        // Check if the sequence matches the solution
+        function checkAlgorithmSolution() {
+            const algo = gameState.algorithm;
+            const challenge = algo.challenges[algo.currentChallenge];
+            const feedback = document.getElementById('algo-feedback');
+            
+            // Compare sequence with solution
+            const isCorrect = JSON.stringify(algo.sequence) === JSON.stringify(challenge.solution);
+            
+            if (isCorrect) {
+                // Update score and feedback
+                algo.score += 10;
+                document.getElementById('algo-score').textContent = algo.score;
+                
+                feedback.textContent = 'Great job! Challenge completed!';
+                feedback.className = 'feedback success';
+                
+                // Show modal
+                document.getElementById('modal-title').textContent = 'Challenge Complete!';
+                document.getElementById('modal-message').textContent = 'You solved the challenge and earned 10 points!';
+                document.getElementById('modal').classList.add('active');
+                
+                // Move to next challenge after delay
+                setTimeout(() => {
+                    algo.currentChallenge = (algo.currentChallenge + 1) % algo.challenges.length;
+                    
+                    // Level up if completed all challenges
+                    if (algo.currentChallenge === 0) {
+                        algo.level++;
+                        document.getElementById('algo-level').textContent = algo.level;
+                    }
+                    
+                    loadAlgorithmChallenge(algo.currentChallenge);
+                }, 2000);
+            } else {
+                feedback.textContent = 'Not quite right. Try again!';
+                feedback.className = 'feedback error';
+            }
+        }
+        
+        // Reset algorithm challenge
+        function resetAlgorithmChallenge() {
+            loadAlgorithmChallenge(gameState.algorithm.currentChallenge);
+        }
+        
+        // Initialize binary game
+        function initBinaryGame() {
+            const binary = gameState.binary;
+            
+            // Set up bit toggling
+            document.querySelectorAll('.bit').forEach(bit => {
+                bit.addEventListener('click', () => {
+                    toggleBit(bit);
+                });
+            });
+            
+            // Set up check button
+            document.getElementById('check-binary-btn').addEventListener('click', () => {
+                checkBinaryAnswer();
+            });
+            
+            // Generate first binary challenge
+            generateBinaryChallenge();
+        }
+        
+        // Generate binary challenge
+        function generateBinaryChallenge() {
+            const binary = gameState.binary;
+            const level = binary.level;
+            
+            // Determine max number based on level
+            const maxBits = Math.min(5, 3 + Math.floor(level / 2));
+            const maxNumber = Math.pow(2, maxBits) - 1;
+            
+            // Randomly choose mode (binary to decimal or decimal to binary)
+            binary.mode = Math.random() < 0.5 ? "binary-to-decimal" : "decimal-to-binary";
+            
+            if (binary.mode === "binary-to-decimal") {
+                // Generate random binary number
+                const decimalValue = Math.floor(Math.random() * maxNumber) + 1;
+                const binaryValue = decimalValue.toString(2);
+                
+                // Set current value
+                binary.currentValue = decimalValue;
+                
+                // Update UI
+                document.getElementById('binary-number').textContent = binaryValue;
+                document.getElementById('binary-to-decimal').style.display = 'block';
+                document.getElementById('decimal-to-binary').style.display = 'none';
+                
+                // Generate options
+                generateDecimalOptions(decimalValue, maxNumber);
+            } else {
+                // Generate random decimal number
+                const decimalValue = Math.floor(Math.random() * maxNumber) + 1;
+                
+                // Set current value
+                binary.currentValue = decimalValue;
+                
+                // Update UI
+                document.getElementById('decimal-number').textContent = decimalValue;
+                document.getElementById('binary-to-decimal').style.display = 'none';
+                document.getElementById('decimal-to-binary').style.display = 'block';
+                
+                // Reset bits
+                document.querySelectorAll('.bit').forEach(bit => {
+                    bit.textContent = '0';
+                    bit.classList.remove('active');
+                });
+                
+                // Update user answer
+                binary.userAnswer = 0;
+                document.getElementById('user-binary-value').textContent = '0';
+            }
+            
+            // Clear feedback
+            document.getElementById('binary-feedback').textContent = '';
+            document.getElementById('binary-feedback').className = 'feedback';
+        }
+        
+        // Generate decimal options for binary-to-decimal mode
+        function generateDecimalOptions(correctAnswer, maxNumber) {
+            const optionsContainer = document.getElementById('decimal-options');
+            optionsContainer.innerHTML = '';
+            
+            // Generate 4 options including the correct answer
+            const options = [correctAnswer];
+            
+            while (options.length < 4) {
+                const randomOption = Math.floor(Math.random() * maxNumber) + 1;
+                if (!options.includes(randomOption)) {
+                    options.push(randomOption);
+                }
+            }
+            
+            // Shuffle options
+            shuffleArray(options);
+            
+            // Create option buttons
+            options.forEach(option => {
+                const optionBtn = document.createElement('div');
+                optionBtn.className = 'binary-option';
+                optionBtn.textContent = option;
+                
+                optionBtn.addEventListener('click', () => {
+                    checkBinaryToDecimalAnswer(option);
+                });
+                
+                optionsContainer.appendChild(optionBtn);
+            });
+        }
+        
+        // Check binary to decimal answer
+        function checkBinaryToDecimalAnswer(selectedAnswer) {
+            const binary = gameState.binary;
+            const feedback = document.getElementById('binary-feedback');
+            
+            if (selectedAnswer === binary.currentValue) {
+                // Correct answer
+                binary.score += 5 * binary.level;
+                document.getElementById('binary-score').textContent = binary.score;
+                
+                feedback.textContent = 'Correct! Great job!';
+                feedback.className = 'feedback success';
+                
+                // Level up after every 5 correct answers
+                if (binary.score >= binary.level * 25) {
+                    binary.level++;
+                    document.getElementById('binary-level').textContent = binary.level;
+                    
+                    // Show level up modal
+                    document.getElementById('modal-title').textContent = 'Level Up!';
+                    document.getElementById('modal-message').textContent = `You've reached Binary level ${binary.level}!`;
+                    document.getElementById('modal').classList.add('active');
+                }
+                
+                // Generate new challenge after delay
+                setTimeout(generateBinaryChallenge, 1500);
+            } else {
+                // Wrong answer
+                feedback.textContent = 'Not correct. Try again!';
+                feedback.className = 'feedback error';
+            }
+        }
+        
+        // Toggle bit in decimal-to-binary mode
+        function toggleBit(bit) {
+            const binary = gameState.binary;
+            const bitValue = parseInt(bit.dataset.value);
+            
+            // Toggle bit
+            if (bit.textContent === '0') {
+                bit.textContent = '1';
+                bit.classList.add('active');
+                binary.userAnswer += bitValue;
+            } else {
+                bit.textContent = '0';
+                bit.classList.remove('active');
+                binary.userAnswer -= bitValue;
+            }
+            
+            // Update display
+            document.getElementById('user-binary-value').textContent = binary.userAnswer;
+        }
+        
+        // Check binary answer in decimal-to-binary mode
+        function checkBinaryAnswer() {
+            const binary = gameState.binary;
+            const feedback = document.getElementById('binary-feedback');
+            
+            if (binary.userAnswer === binary.currentValue) {
+                // Correct answer
+                binary.score += 5 * binary.level;
+                document.getElementById('binary-score').textContent = binary.score;
+                
+                feedback.textContent = 'Correct! Great job!';
+                feedback.className = 'feedback success';
+                
+                // Level up after every 5 correct answers
+                if (binary.score >= binary.level * 25) {
+                    binary.level++;
+                    document.getElementById('binary-level').textContent = binary.level;
+                    
+                    // Show level up modal
+                    document.getElementById('modal-title').textContent = 'Level Up!';
+                    document.getElementById('modal-message').textContent = `You've reached Binary level ${binary.level}!`;
+                    document.getElementById('modal').classList.add('active');
+                }
+                
+                // Generate new challenge after delay
+                setTimeout(generateBinaryChallenge, 1500);
+            } else {
+                // Wrong answer
+                feedback.textContent = 'Not correct. Try again!';
+                feedback.className = 'feedback error';
+            }
+        }
+        
+        // Utility function to shuffle array
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        
+        // Start the game when the page loads
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>
