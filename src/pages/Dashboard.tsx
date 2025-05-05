@@ -18,8 +18,11 @@ import {
   Award,
   ChevronRight,
   PlayCircle,
+  Bot,
+  Sparkles,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { deepseekAI, type DeepSeekMessage } from "../lib/deepseekAI";
 
 interface UserData {
   id: string;
@@ -47,6 +50,11 @@ interface ChatMessage {
   timestamp: Date;
 }
 
+interface AIAssistantState {
+  isProcessing: boolean;
+  conversationHistory: DeepSeekMessage[];
+}
+
 interface DashboardProps {
   children?: React.ReactNode;
 }
@@ -61,13 +69,17 @@ export default function Dashboard({ children }: DashboardProps) {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       id: "1",
-      text: "Hello! I'm your learning assistant. How can I help you today?",
+      text: "Hello! I'm your DeepSeek AI learning assistant. How can I help you navigate and understand the SPS PRO system today?",
       sender: "bot",
       timestamp: new Date(),
     },
   ]);
   const [messageInput, setMessageInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const [aiState, setAiState] = useState<AIAssistantState>({
+    isProcessing: false,
+    conversationHistory: [],
+  });
 
   useEffect(() => {
     const {
@@ -222,10 +234,10 @@ export default function Dashboard({ children }: DashboardProps) {
     setIsChatOpen(!isChatOpen);
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!messageInput.trim()) return;
+    if (!messageInput.trim() || aiState.isProcessing) return;
 
     // Add user message
     const userMessage: ChatMessage = {
@@ -235,53 +247,66 @@ export default function Dashboard({ children }: DashboardProps) {
       timestamp: new Date(),
     };
 
+    // Update DeepSeek conversation history
+    const updatedHistory = [
+      ...aiState.conversationHistory,
+      { role: 'user', content: messageInput }
+    ];
+
+    // Update state
     setChatMessages((prev) => [...prev, userMessage]);
     setMessageInput("");
+    setAiState(prev => ({
+      ...prev,
+      isProcessing: true,
+      conversationHistory: updatedHistory
+    }));
 
-    // Simulate bot response
-    setTimeout(() => {
-      let botResponse = "";
-
-      const lowercaseInput = messageInput.toLowerCase();
-
-      if (lowercaseInput.includes("course") && lowercaseInput.includes("enroll")) {
-        botResponse =
-          "To enroll in a course, simply click on the course card and then press the 'Enroll Now' button on the course details page!";
-      } else if (lowercaseInput.includes("progress")) {
-        botResponse =
-          "Your course progress can be found on each course card. The green progress bar shows how far you've come!";
-      } else if (
-        lowercaseInput.includes("assignment") ||
-        lowercaseInput.includes("homework")
-      ) {
-        botResponse =
-          "You can find all your assignments in the 'Assignments' section of each course. Click on a course and scroll down to see them.";
-      } else if (
-        lowercaseInput.includes("profile") ||
-        lowercaseInput.includes("account")
-      ) {
-        botResponse =
-          "You can access your profile by clicking on your profile picture in the top right corner!";
-      } else if (
-        lowercaseInput.includes("help") ||
-        lowercaseInput.includes("support")
-      ) {
-        botResponse =
-          "For additional support, please visit our Help Center or contact support@elearningsystem.com";
-      } else {
-        botResponse =
-          "I'm here to help with your e-learning journey! You can ask me about courses, assignments, your progress, or how to use different features of the platform.";
-      }
-
+    try {
+      // Set dashboard context for more relevant responses
+      const dashboardContext = "SPS PRO Learning Dashboard - Navigate courses, track progress, and access learning resources";
+      deepseekAI.setCourseContext("SPS PRO Platform Navigation", dashboardContext);
+      
+      // Get response from DeepSeek AI
+      const aiResponse = await deepseekAI.getResponse(messageInput, aiState.conversationHistory);
+      
+      // Add bot response to chat
       const botMessage: ChatMessage = {
         id: Date.now().toString(),
-        text: botResponse,
+        text: aiResponse,
         sender: "bot",
         timestamp: new Date(),
       };
 
+      // Update conversation history with assistant's response
+      const newHistory = [
+        ...updatedHistory,
+        { role: 'assistant', content: aiResponse }
+      ];
+
       setChatMessages((prev) => [...prev, botMessage]);
-    }, 1000);
+      setAiState(prev => ({
+        ...prev,
+        isProcessing: false,
+        conversationHistory: newHistory
+      }));
+    } catch (error) {
+      console.error("Error getting AI response:", error);
+      
+      // Add error message
+      const errorMessage: ChatMessage = {
+        id: Date.now().toString(),
+        text: "I'm sorry, I encountered an issue processing your request. Please try again later.",
+        sender: "bot",
+        timestamp: new Date(),
+      };
+      
+      setChatMessages((prev) => [...prev, errorMessage]);
+      setAiState(prev => ({
+        ...prev,
+        isProcessing: false
+      }));
+    }
   };
 
   if (loading) {
@@ -551,9 +576,12 @@ export default function Dashboard({ children }: DashboardProps) {
                           <span className="text-xs text-gray-500">
                             Instructor: {course.instructor}
                           </span>
-                          <button className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium">
+                          <Link 
+                            to={`/study/${course.id}`} 
+                            className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+                          >
                             <PlayCircle className="w-4 h-4 mr-1" /> Continue
-                          </button>
+                          </Link>
                         </div>
                       </div>
                     </div>
@@ -620,8 +648,8 @@ export default function Dashboard({ children }: DashboardProps) {
           className="bg-emerald-600 text-white p-4 rounded-t-xl flex items-center justify-between cursor-pointer"
         >
           <div className="flex items-center">
-            <MessageSquare className="w-5 h-5 mr-2" />
-            <h3 className="font-medium">Learning Assistant</h3>
+            <Bot className="w-5 h-5 mr-2" />
+            <h3 className="font-medium">DeepSeek AI Assistant</h3>
           </div>
           <div
             className={`transform transition-transform duration-300 ${
@@ -666,14 +694,20 @@ export default function Dashboard({ children }: DashboardProps) {
               type="text"
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
-              placeholder="Type your question here..."
+              placeholder="Ask DeepSeek AI about the system..."
               className="flex-1 border rounded-l-lg p-2 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+              disabled={aiState.isProcessing}
             />
             <button
               type="submit"
-              className="bg-emerald-600 text-white p-2 rounded-r-lg hover:bg-emerald-700 transition-colors duration-200"
+              disabled={aiState.isProcessing || !messageInput.trim()}
+              className={`${aiState.isProcessing ? 'bg-gray-400' : 'bg-emerald-600 hover:bg-emerald-700'} text-white p-2 rounded-r-lg transition-colors duration-200`}
             >
-              <Send className="w-5 h-5" />
+              {aiState.isProcessing ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Send className="w-5 h-5" />
+              )}
             </button>
           </form>
         </div>

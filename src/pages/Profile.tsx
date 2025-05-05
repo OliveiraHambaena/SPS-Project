@@ -22,7 +22,8 @@ import {
   Timer,
   Users,
   ChevronDown,
-  Image
+  Image,
+  Phone
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -265,7 +266,7 @@ export default function Profile() {
       // Fetch profile from users_view instead of users table
       const { data, error } = await supabase
         .from('users_view')
-        .select('id, role, identifier_code, name, subject, grade, created_at, updated_at')
+        .select('id, role, identifier_code, name, phone, avatar_url, subject, grade, created_at, updated_at')
         .eq('id', user.id)
         .single()
 
@@ -275,7 +276,8 @@ export default function Profile() {
 
       setUserProfile(profileData)
       setFormData({
-        full_name: data.name || ''
+        full_name: data.name || '',
+        phone: data.phone || ''
       })
       // avatar_url may not exist in the view, so skip avatar preview update
 
@@ -492,7 +494,7 @@ export default function Profile() {
               <div className="pt-20 pb-6 px-6">
                 <div className="text-center">
                   <h2 className="text-xl font-bold text-gray-900">
-                    {userProfile?.name || 'Your Name'}
+                    {userProfile?.name || formData.full_name || (userProfile?.role ? `${userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1)} Profile` : 'My Profile')}
                   </h2>
                   <div className="mt-1 flex justify-center">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
