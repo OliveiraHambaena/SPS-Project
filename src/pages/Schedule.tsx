@@ -1,5 +1,5 @@
 import React from 'react';
-import Dashboard from './Dashboard';
+import Dashboard from '../pages/Dashboard';
 
 export default function Schedule() {
   return (

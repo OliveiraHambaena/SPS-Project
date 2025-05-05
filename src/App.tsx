@@ -10,8 +10,10 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Profile from './pages/Profile'
 import Courses from './pages/Courses'
+import CourseDetail from './pages/CourseDetail'
 import Certificates from './pages/Certificates'
 import Schedule from './pages/Schedule'
+import Study from './pages/Study'
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -145,6 +147,26 @@ function App() {
           element={
             session ? (
               <Schedule />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } 
+        />
+        <Route 
+          path="/study/:courseId" 
+          element={
+            session ? (
+              <Study />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } 
+        />
+        <Route 
+          path="/course/:courseId" 
+          element={
+            session ? (
+              <CourseDetail />
             ) : (
               <Navigate to="/login" replace />
             )
