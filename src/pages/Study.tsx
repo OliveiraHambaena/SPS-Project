@@ -446,140 +446,49 @@ export default function Study() {
     try {
       setLoading(true);
       
-      // This would normally fetch from an actual database
-      // Mock course data for demonstration
+      // In a real app, this would fetch from an API or database
+      // For demonstration, we'll use mock data
       const mockCourse: Course = {
         id: courseId || '1',
         title: 'Advanced React Patterns',
-        description: 'Master complex React concepts and patterns for building scalable applications',
+        description: 'Master complex React patterns and techniques',
         instructor: 'John Doe',
-        totalModules: 8,
-        completedModules: 3,
-        progress: 37.5,
-        modules: [
+        totalModules: 0,
+        completedModules: 0,
+        progress: 0,
+        modules: []
+      };
+      
+      // Check if we have stored AI-generated modules in localStorage
+      const storedModules = localStorage.getItem(`ai-modules-${courseId}`);
+      if (storedModules) {
+        const parsedModules = JSON.parse(storedModules) as Module[];
+        mockCourse.modules = parsedModules;
+        mockCourse.totalModules = parsedModules.length;
+        mockCourse.completedModules = parsedModules.filter(m => m.completed).length;
+        mockCourse.progress = mockCourse.totalModules > 0 
+          ? (mockCourse.completedModules / mockCourse.totalModules) * 100 
+          : 0;
+      } else {
+        // Provide default modules if no AI-generated modules exist
+        mockCourse.modules = [
           {
             id: 'm1',
             title: 'Introduction to Advanced React Patterns',
             description: 'Overview of the course and what you will learn',
             duration: 10,
-            type: 'video',
-            completed: true,
-            videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
-          },
-          {
-            id: 'm2',
-            title: 'Compound Components Pattern',
-            description: 'Learn how to create flexible and composable components',
-            duration: 25,
-            type: 'video',
-            completed: true,
-            videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
-          },
-          {
-            id: 'm3',
-            title: 'Render Props Pattern',
-            description: 'Share code between components using a prop whose value is a function',
-            duration: 20,
-            type: 'video',
-            completed: true,
-            videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
-          },
-          {
-            id: 'm4',
-            title: 'Custom Hooks Pattern',
-            description: 'Extract component logic into reusable functions',
-            duration: 30,
-            type: 'video',
-            completed: false,
-            videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
-          },
-          {
-            id: 'm5',
-            title: 'State Reducer Pattern',
-            description: 'Control how state is managed in reusable components',
-            duration: 25,
             type: 'reading',
             completed: false,
-            content: `
-              <h2>State Reducer Pattern</h2>
-              <p>The state reducer pattern allows you to give control over state management to the users of your custom hook or component.</p>
-              <p>This is particularly useful when you want to provide a default behavior but also allow users to customize how state changes in response to actions.</p>
-              <h3>Key Concepts</h3>
-              <ul>
-                <li>Expose a reducer to users</li>
-                <li>Allow overriding default behavior</li>
-                <li>Maintain control over internal state</li>
-              </ul>
-              <h3>Example Implementation</h3>
-              <pre>
-function useToggle({reducer = defaultReducer} = {}) {
-  const [{on}, dispatch] = React.useReducer(reducer, {on: false})
-  
-  const toggle = () => dispatch({type: 'TOGGLE'})
-  const reset = () => dispatch({type: 'RESET'})
-  
-  return {on, toggle, reset}
-}
-
-function defaultReducer(state, action) {
-  switch (action.type) {
-    case 'TOGGLE':
-      return {on: !state.on}
-    case 'RESET':
-      return {on: false}
-    default:
-      throw new Error(\`Unsupported action type: \${action.type}\`)
-  }
-}
-              </pre>
-            `
-          },
-          {
-            id: 'm6',
-            title: 'Props Collection Pattern',
-            description: 'Provide a collection of props to be spread onto elements',
-            duration: 15,
-            type: 'reading',
-            completed: false,
-            content: `
-              <h2>Props Collection Pattern</h2>
-              <p>The props collection pattern involves providing a collection of props that can be spread onto elements.</p>
-              <p>This makes your custom hooks or components more convenient to use by providing pre-configured props.</p>
-              <h3>Key Benefits</h3>
-              <ul>
-                <li>Simplifies component API</li>
-                <li>Ensures consistent behavior</li>
-                <li>Reduces boilerplate code</li>
-              </ul>
-            `
-          },
-          {
-            id: 'm7',
-            title: 'Module Quiz',
-            description: 'Test your knowledge of React patterns',
-            duration: 15,
-            type: 'quiz',
-            completed: false
-          },
-          {
-            id: 'm8',
-            title: 'Final Project',
-            description: 'Apply what you learned in a real-world project',
-            duration: 60,
-            type: 'reading',
-            completed: false
+            content: 'Click the "Generate 10 Chapters" button to create AI-generated content.'
           }
-        ]
-      };
+        ];
+        mockCourse.totalModules = 1;
+      }
       
       setCourse(mockCourse);
-      
-      // Find the first incomplete module
-      const firstIncompleteIndex = mockCourse.modules.findIndex(module => !module.completed);
-      setCurrentModuleIndex(firstIncompleteIndex >= 0 ? firstIncompleteIndex : 0);
-      
-    } catch (err) {
-      console.error('Error fetching course data:', err);
+      setCurrentModuleIndex(0);
+    } catch (error) {
+      console.error('Error fetching course data:', error);
     } finally {
       setLoading(false);
     }
@@ -646,6 +555,86 @@ function defaultReducer(state, action) {
     console.log('Saving notes:', notes);
     // Show a success message
     alert('Notes saved successfully!');
+  };
+
+  // Generate 10 AI chapters for the course
+  const generateCourseChapters = async () => {
+    if (!course || !deepseekAI) return;
+    
+    try {
+      setLoading(true);
+      
+      // Prepare the prompt for chapter generation
+      const prompt = `Generate 10 comprehensive and well-structured chapters for a course titled "${course.title}". 
+      The course is about ${course.description}.
+      
+      Each chapter should:
+      1. Have a clear, descriptive title that indicates the topic
+      2. Follow a logical progression from basic to advanced concepts
+      3. Be appropriate for the subject matter and difficulty level
+      4. Include a brief description of what will be covered
+      
+      Format the response as a numbered list with the chapter title followed by a short description.
+      Example format:
+      1. [Chapter Title] - [Brief description of chapter content]
+      2. [Chapter Title] - [Brief description of chapter content]
+      ...and so on for all 10 chapters.`;
+      
+      // Set course context for more relevant responses
+      deepseekAI.setCourseContext(course.title, course.description);
+      
+      // Get AI response
+      const aiResponse = await deepseekAI.getResponse(prompt, []);
+      
+      // Parse the response to extract chapters
+      const chapterLines = aiResponse.split('\n').filter(line => /^\d+\./.test(line.trim()));
+      
+      // Create module objects from the generated chapters
+      const generatedModules: Module[] = chapterLines.slice(0, 10).map((line, index) => {
+        // Extract title and description from the line
+        const match = line.match(/^\d+\.\s*([^-]+)-\s*(.+)$/) || 
+                     line.match(/^\d+\.\s*([^:]+):\s*(.+)$/) || 
+                     line.match(/^\d+\.\s*([^:]+)\s*(.+)?$/);
+        
+        const title = match ? match[1].trim() : `Chapter ${index + 1}`;
+        const description = match && match[2] ? match[2].trim() : 'Generated chapter content';
+        
+        return {
+          id: `generated-${Date.now()}-${index}`,
+          title: title,
+          description: description,
+          duration: 15, // Default duration in minutes
+          type: 'reading',
+          completed: false,
+          content: `# ${title}\n\n${description}\n\nThis content was generated by AI. Click on the AI Content Generator button to create detailed content for this chapter.`
+        };
+      });
+      
+      // Update the course with the new modules
+      const updatedCourse: Course = {
+        ...course,
+        modules: generatedModules,
+        totalModules: generatedModules.length,
+        completedModules: 0,
+        progress: 0
+      };
+      
+      // Update the course state
+      setCourse(updatedCourse);
+      setCurrentModuleIndex(0);
+      
+      // Store the generated modules in localStorage
+      localStorage.setItem(`ai-modules-${courseId}`, JSON.stringify(generatedModules));
+      
+      // Show success message
+      alert('Successfully generated 10 chapters for this course!');
+      
+    } catch (error) {
+      console.error('Error generating chapters:', error);
+      alert('Failed to generate chapters. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {
@@ -764,6 +753,18 @@ function defaultReducer(state, action) {
               >
                 <Gamepad2 className="w-4 h-4 mr-2" />
                 <span className="font-medium">Study Games</span>
+              </button>
+            </div>
+            
+            {/* AI Generate Chapters Button */}
+            <div className="px-2 mb-4">
+              <button
+                onClick={generateCourseChapters}
+                className="w-full flex items-center justify-center px-4 py-2 rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-600 hover:text-white transition-colors duration-200"
+                aria-label="Generate 10 chapters with AI"
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                <span className="font-medium">Generate 10 Chapters</span>
               </button>
             </div>
             
@@ -960,7 +961,7 @@ function defaultReducer(state, action) {
                         <div className="bg-purple-50 p-6 rounded-lg mb-4 text-center">
                           <p className="text-xl mb-6">Solve the equation:</p>
                           <p className="text-3xl font-bold mb-6">12x + 7 = 31</p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md mx-auto">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <button className="bg-white border-2 border-purple-200 rounded-lg p-3 text-lg hover:bg-purple-100 transition-colors">x = 2</button>
                             <button className="bg-white border-2 border-purple-200 rounded-lg p-3 text-lg hover:bg-purple-100 transition-colors">x = 3</button>
                             <button className="bg-white border-2 border-purple-200 rounded-lg p-3 text-lg hover:bg-purple-100 transition-colors">x = 4</button>
@@ -1188,17 +1189,22 @@ function defaultReducer(state, action) {
                             </h4>
                             <div className="space-y-4">
                               {generatedContent.codeSnippets.map((snippet, index) => (
-                                <div key={index} className="rounded-lg overflow-hidden shadow-sm">
-                                  <div className="bg-gray-800 text-white p-4 overflow-x-auto">
+                                <div key={index} className="rounded-lg overflow-hidden shadow-sm border border-blue-200">
+                                  <div className="bg-blue-50 p-4">
+                                    <p className="font-medium text-blue-800 mb-2 flex items-center">
+                                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 mr-2">
+                                        <span className="text-xs font-bold">{index + 1}</span>
+                                      </span>
+                                      Code Snippet {index + 1}
+                                    </p>
                                     <pre className="text-sm">
                                       <code>{snippet}</code>
                                     </pre>
                                   </div>
                                   {generatedContent.codeExplanations && generatedContent.codeExplanations[index] && (
-                                    <div className="bg-gray-100 p-4 border-t border-gray-700">
-                                      <p className="text-sm text-gray-800">
-                                        <strong>Explanation:</strong> {generatedContent.codeExplanations[index]}
-                                      </p>
+                                    <div className="bg-gray-100 p-4 border-t border-blue-200">
+                                      <p className="font-medium text-blue-800 mb-2">Explanation:</p>
+                                      <p className="text-gray-700 whitespace-pre-line">{generatedContent.codeExplanations[index]}</p>
                                     </div>
                                   )}
                                 </div>
@@ -1321,7 +1327,7 @@ function defaultReducer(state, action) {
                                     </div>
                                     
                                     {solutionText && (
-                                      <div className="bg-white p-4 border-t border-blue-200">
+                                      <div className="bg-gray-100 p-4 border-t border-blue-200">
                                         <p className="font-medium text-blue-800 mb-2">Solution:</p>
                                         <p className="text-gray-700 whitespace-pre-line">{solutionText.replace(/Solution:|Answer:|Step-by-step:/, '')}</p>
                                       </div>
@@ -1380,8 +1386,7 @@ function defaultReducer(state, action) {
                                             rel="noopener noreferrer"
                                             className="text-blue-600 hover:text-blue-800 flex items-center mt-1"
                                           >
-                                            {urlMatch[1]}
-                                            <ExternalLink className="w-3 h-3 ml-1" />
+                                            <ExternalLink className="w-3 h-3 mr-1" />{urlMatch[1]}
                                           </a>
                                         </div>
                                       ) : (
@@ -1488,7 +1493,7 @@ function defaultReducer(state, action) {
             {!showContentGenerator && (
               <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
                 {currentModule.type === 'video' && (
-                  <div className="aspect-w-16 aspect-h-9">
+                  <div className="aspect-w-16 aspect-h-9 mb-2">
                     <iframe
                       src={currentModule.videoUrl}
                       title={currentModule.title}

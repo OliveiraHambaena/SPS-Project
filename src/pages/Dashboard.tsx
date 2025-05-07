@@ -169,8 +169,8 @@ export default function Dashboard({ children }: DashboardProps) {
     const mockCourses: Course[] = [
       {
         id: "1",
-        title: "Introduction to Web Development",
-        description: "Learn the basics of HTML, CSS, and JavaScript",
+        title: "Grade 12 - Advanced Physics",
+        description: "Learn mechanics, thermodynamics, and electromagnetism for grade 12 students",
         image_url: "https://images.unsplash.com/photo-1593720213428-28a5b9e94613",
         instructor: "Jane Smith",
         progress: 85,
@@ -179,8 +179,8 @@ export default function Dashboard({ children }: DashboardProps) {
       },
       {
         id: "2",
-        title: "Advanced React Patterns",
-        description: "Master complex React concepts and patterns",
+        title: "Grade 11 - Chemistry Fundamentals",
+        description: "Master organic chemistry, chemical reactions and lab techniques for grade 11",
         image_url: "https://images.unsplash.com/photo-1633356122102-3fe601e05bd2",
         instructor: "John Doe",
         progress: 45,
@@ -189,8 +189,8 @@ export default function Dashboard({ children }: DashboardProps) {
       },
       {
         id: "3",
-        title: "UX/UI Design Fundamentals",
-        description: "Create beautiful and intuitive user interfaces",
+        title: "Grade 10 - Introduction to Biology",
+        description: "Explore cells, genetics, and ecosystems for grade 10 students",
         image_url: "https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e",
         instructor: "Sara Johnson",
         progress: 20,
@@ -199,8 +199,8 @@ export default function Dashboard({ children }: DashboardProps) {
       },
       {
         id: "4",
-        title: "Data Science with Python",
-        description: "Analyze and visualize data using Python",
+        title: "Grade 12 - Advanced Mathematics",
+        description: "Study calculus, statistics, and advanced algebra for grade 12 students",
         image_url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71",
         instructor: "Michael Chen",
         progress: 0,
@@ -472,7 +472,7 @@ export default function Dashboard({ children }: DashboardProps) {
                     {userData?.full_name || "User"}
                   </span>
                   <span className="text-xs text-emerald-600 capitalize">
-                    {userData?.role || "Student"}
+                    {userData?.role ? userData.role.charAt(0).toUpperCase() + userData.role.slice(1) : "Student"}
                   </span>
                 </div>
                 <Link
@@ -509,7 +509,7 @@ export default function Dashboard({ children }: DashboardProps) {
                 <p className="opacity-90 mb-2">
                   You are logged in as{" "}
                   <span className="font-semibold capitalize">
-                    {userData?.role || "Student"}
+                    {userData?.role ? userData.role.charAt(0).toUpperCase() + userData.role.slice(1) : "Student"}
                   </span>
                 </p>
                 <div className="flex items-center mt-3">
@@ -618,13 +618,7 @@ export default function Dashboard({ children }: DashboardProps) {
                         <span className="text-sm text-gray-600">Alex Morgan</span>
                       </div>
                       <div className="mt-auto flex items-center">
-                        <span className="text-2xl font-bold text-gray-900 mr-3">
-                          $49.99
-                        </span>
-                        <span className="text-sm text-gray-500 line-through mr-4">
-                          $99.99
-                        </span>
-                        <button className="ml-auto bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-200">
+                        <button className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-200">
                           Enroll Now
                         </button>
                       </div>
