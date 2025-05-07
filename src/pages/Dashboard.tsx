@@ -26,9 +26,13 @@ import { deepseekAI, type DeepSeekMessage } from "../lib/deepseekAI";
 
 interface UserData {
   id: string;
+  name?: string;
   role: "student" | "teacher" | "parent";
   identifier_code: string;
-  full_name?: string;
+  subject?: string;
+  grade?: string;
+  created_at?: string;
+  updated_at?: string;
   avatar_url?: string;
 }
 
@@ -113,16 +117,22 @@ export default function Dashboard({ children }: DashboardProps) {
         throw new Error("No authenticated user");
       }
 
-      // Fetch user data from the users_view instead of users table
+      // Fetch user data from the users_view
       const { data, error } = await supabase
         .from("users_view")
-        .select("id, role, identifier_code, full_name")
+        .select("id, name, role, identifier_code, subject, grade")
         .eq("id", user.id)
         .single();
 
       if (error) throw error;
 
-      setUserData(data as UserData);
+      // Add avatar_url if needed (not in the view)
+      const userData = {
+        ...data,
+        avatar_url: undefined // You can fetch this separately if needed
+      };
+
+      setUserData(userData as UserData);
     } catch (err) {
       console.error("Error fetching user data:", err);
       // Instead of logging out, try to create a default user record if it doesn't exist
@@ -136,9 +146,9 @@ export default function Dashboard({ children }: DashboardProps) {
             .from("users")
             .insert({
               id: user.id,
+              name: user.email?.split("@")[0] || "New User",
               role: "student",
-              identifier_code: user.id.substring(0, 8).toUpperCase(),
-              full_name: user.email?.split("@")[0] || "New User",
+              identifier_code: user.id.substring(0, 8).toUpperCase()
             })
             .select()
             .single();
@@ -321,7 +331,7 @@ export default function Dashboard({ children }: DashboardProps) {
   }
 
   const displayName =
-    userData?.full_name ||
+    userData?.name ||
     (userData?.role
       ? userData.role.charAt(0).toUpperCase() + userData.role.slice(1)
       : "User");
@@ -467,11 +477,11 @@ export default function Dashboard({ children }: DashboardProps) {
                 <span className="absolute top-0 right-0 block w-2 h-2 bg-red-400 rounded-full"></span>
               </button>
               <div className="flex items-center">
-                <div className="flex flex-col mr-2">
-                  <span className="text-sm font-medium text-gray-900">
-                    {userData?.full_name || "User"}
+                <div className="flex flex-col mr-2" data-component-name="Dashboard">
+                  <span className="text-sm font-medium text-gray-900" data-component-name="Dashboard">
+                    {userData?.name || "User"}
                   </span>
-                  <span className="text-xs text-emerald-600 capitalize">
+                  <span className="text-xs text-emerald-600 capitalize" data-component-name="Dashboard">
                     {userData?.role ? userData.role.charAt(0).toUpperCase() + userData.role.slice(1) : "Student"}
                   </span>
                 </div>
@@ -504,7 +514,7 @@ export default function Dashboard({ children }: DashboardProps) {
               {/* Welcome Section */}
               <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-xl p-6 mb-8 text-white shadow-lg">
                 <h1 className="text-2xl font-bold mb-2">
-                  Welcome back, {userData?.full_name || "User"}!
+                  Welcome back, {userData?.name || "User"}!
                 </h1>
                 <p className="opacity-90 mb-2">
                   You are logged in as{" "}

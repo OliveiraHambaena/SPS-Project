@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, Fragment } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Camera, Loader2, CheckCircle, ArrowLeft, Shield, Book, GraduationCap, Calendar, Clock, Star, Users, Clock3, Award, ExternalLink, X, Upload, Info } from 'lucide-react';
+import { User, Camera, Loader2, CheckCircle, ArrowLeft, Shield, Book, GraduationCap, Calendar, Clock, Star, Users, Clock3, Award, ExternalLink, X, Upload, Info, PlusCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 // TypeScript interfaces
@@ -399,10 +399,10 @@ export default function Profile() {
   const handleBack = () => {
     if (hasChanges) {
       if (window.confirm('You have unsaved changes. Are you sure you want to go back?')) {
-        navigate(-1);
+        navigate('/dashboard');
       }
     } else {
-      navigate(-1);
+      navigate('/dashboard');
     }
   };
   
@@ -644,6 +644,7 @@ export default function Profile() {
               onClick={handleBack}
               className="mb-2 flex items-center text-sm font-medium text-emerald-600 hover:text-emerald-800 transition-colors"
               aria-label="Go back"
+              data-component-name="Profile"
             >
               <ArrowLeft className="w-4 h-4 mr-1" />
               Back to Dashboard
@@ -928,9 +929,21 @@ export default function Profile() {
                   </form>
                 ) : activeTab === 'courses' ? (
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">
-                      {userProfile?.role === 'teacher' ? 'Courses You Teach' : 'Your Enrolled Courses'}
-                    </h3>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-medium text-gray-900">
+                        {userProfile?.role === 'teacher' ? 'Courses You Teach' : 'Your Enrolled Courses'}
+                      </h3>
+                      {userProfile?.role === 'teacher' && (
+                        <button
+                          type="button"
+                          onClick={() => setShowCourseModal(true)}
+                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+                        >
+                          Add Course
+                          <PlusCircle className="ml-1.5 w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                     
                     {loadingCourses ? (
                       <div className="py-12 flex justify-center items-center">
@@ -1323,13 +1336,15 @@ export default function Profile() {
                               className="block w-full rounded-md border-2 border-gray-300 shadow-sm focus:ring-emerald-500 focus:border-emerald-500 hover:border-emerald-300 transition-colors sm:text-sm py-4 h-16"
                             >
                               <option value="English">English</option>
-                              <option value="Spanish">Spanish</option>
-                              <option value="French">French</option>
-                              <option value="German">German</option>
-                              <option value="Chinese">Chinese</option>
-                              <option value="Japanese">Japanese</option>
-                              <option value="Arabic">Arabic</option>
-                              <option value="Russian">Russian</option>
+                              <option value="Oshiwambo">Oshiwambo</option>
+                              <option value="Otjiherero">Otjiherero</option>
+                              <option value="Damara/Nama">Damara/Nama</option>
+                              <option value="Rukwangali">Rukwangali</option>
+                              <option value="Silozi">Silozi</option>
+                              <option value="Setswana">Setswana</option>
+                              <option value="Afrikaans">Afrikaans</option>
+                              <option value="Khoekhoegowab">Khoekhoegowab</option>
+                              <option value="San">San</option>
                             </select>
                           </div>
                         </div>
