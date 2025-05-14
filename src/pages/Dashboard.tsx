@@ -599,31 +599,29 @@ export default function Dashboard({ children }: DashboardProps) {
                   ))}
                 </div>
               </div>
-
-              {/* Recommended & Featured Courses */}
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                  Recommended For You
-     </h2>
-<div className="bg-white rounded-xl shadow-sm p-6">
-  <div className="flex flex-col md:flex-row gap-6">
-    <img
-      src="https://www.edumilestones.com/career-library/images/robotics.png"
-      alt="Introduction to Robotics"
-      className="h-48 w-full md:w-64 object-cover rounded-lg"
-    />
-    <div className="flex flex-col flex-1">
-      <h3 className="font-semibold text-lg text-gray-900">
-        Introduction to Robotics
-      </h3>
-      <p className="text-gray-500 my-2">
-        Learn the basics of robotics through hands-on projects combining science,
-        engineering, and coding. Build and program simple robots while exploring real-world STEM skills.
-      </p>
-    </div>
-  </div>
-</div>
-
+                                {/* Recommended & Featured Courses */}
+                                <div className="mb-8">
+                                  <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                                    Recommended For You
+                       </h2>
+                  <div className="bg-white rounded-xl shadow-sm p-6">
+                    <div className="flex flex-col md:flex-row gap-6">
+                      <img
+                        src="https://files.codingninjas.in/article_images/introduction-to-robotics-0-1724326778.jpg"
+                        alt="Introduction to Robotics"
+                        className="h-48 w-full md:w-64 object-cover rounded-lg"
+                      />
+                      <div className="flex flex-col flex-1">
+                        <h3 className="font-semibold text-lg text-gray-900">
+                          Introduction to Robotics
+                        </h3>
+                        <p className="text-gray-500 my-2">
+                          Learn the basics of robotics through hands-on projects combining science,
+                          engineering, and coding. Build and program simple robots while exploring real-world STEM skills.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                       <div className="flex items-center mt-1 mb-4">
                         <img
                           src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
