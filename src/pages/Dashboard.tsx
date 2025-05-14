@@ -192,7 +192,7 @@ export default function Dashboard({ children }: DashboardProps) {
         id: "2",
         title: "Grade 11 - Chemistry Fundamentals",
         description: "Master organic chemistry, chemical reactions and lab techniques for grade 11",
-        image_url: "https://images.unsplash.com/photo-1633356122102-3fe601e05bd2",
+        image_url: "https://www.newscientist.com/nsj/getasset/c40a5488-11be-43b0-843f-a2e6ef9f0612/",
         instructor: "John Doe",
         progress: 45,
         total_modules: 8,
