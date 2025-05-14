@@ -210,7 +210,7 @@ export default function Dashboard({ children }: DashboardProps) {
       },
       {
         id: "4",
-        title: "Grade 12 - Advanced Mathematics",
+        title: "Grade 12 - Basic Mathematics",
         description: "Study calculus, statistics, and advanced algebra for grade 12 students",
         image_url: "https://mvjce.edu.in/wp-content/uploads/2024/07/The-Power-of-Mathematics-and-Computing.jpg",
         instructor: "Michael Chen",
