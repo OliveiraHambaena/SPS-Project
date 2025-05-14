@@ -181,7 +181,8 @@ export default function Dashboard({ children }: DashboardProps) {
         id: "1",
         title: "Grade 12 - Advanced Physics",
         description: "Learn mechanics, thermodynamics, and electromagnetism for grade 12 students",
-        image_url: "https://images.unsplash.com/photo-1593720213428-28a5b9e94613",
+         image_url: "https://img.freepik.com/free-vector/background-about-physics_1010235.jpg",
+
         instructor: "Jane Smith",
         progress: 85,
         total_modules: 12,
