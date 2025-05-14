@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   Search,
@@ -13,8 +13,7 @@ import {
   List,
   SortAsc,
   SortDesc,
-  Loader,
-  BookOpenCheck
+  Loader
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { Course as CourseType } from '../types/course'
@@ -23,19 +22,24 @@ interface UserData {
   id: string
   role: 'student' | 'teacher' | 'parent'
   identifier_code: string
-  name?: string
+  full_name?: string
+  avatar_url?: string
 }
 
 interface Course extends CourseType {
   instructor_name?: string
+  creator_name?: string
   duration?: string
   level?: string
   category?: string
+  image_url?: string
+  reviews_count?: number
 }
 
 export default function Courses() {
   const navigate = useNavigate()
-  const [userData, setUserData] = useState<UserData | null>(null)
+  // We keep userData for future use but mark it with _ to indicate it's intentionally unused for now
+  const [_userData, setUserData] = useState<UserData | null>(null)
   const [loading, setLoading] = useState(true)
   const [coursesLoading, setCoursesLoading] = useState(true)
   const [courses, setCourses] = useState<Course[]>([])
@@ -83,10 +87,10 @@ export default function Courses() {
         throw new Error('No authenticated user')
       }
 
-      // Fetch user data from the users_view
+      // Fetch user data from the users table
       const { data, error } = await supabase
-        .from('users_view')
-        .select('id, role, identifier_code, name')
+        .from('users')
+        .select('id, role, identifier_code, full_name, avatar_url')
         .eq('id', user.id)
         .single()
 
@@ -103,49 +107,108 @@ export default function Courses() {
   const fetchCourses = async () => {
     setCoursesLoading(true)
     try {
-      // Fetch courses from Supabase with instructor information
+      // Fetch courses from the course_details_view
       const { data, error } = await supabase
-        .from('courses')
-        .select(`
-          id, 
-          title, 
-          description, 
-          rating, 
-          review_count,
-          student_count,
-          duration_hours,
-          difficulty_level,
-          instructor_id,
-          created_by,
-          created_at,
-          updated_at,
-          last_updated,
-          language,
-          has_certificate,
-          is_featured,
-          thumbnail_url,
-          video_preview_url,
-          users!instructor_id(id, full_name, avatar_url)
-        `)
+        .from('course_details_view')
+        .select('*')
       
       if (error) {
         console.error('Error fetching courses:', error)
         throw error
       }
+
+      console.log('Fetched courses data:', data)
+      
+      // If no courses found, use mock data
+      if (!data || data.length === 0) {
+        console.log('No courses found in database, using mock data')
+        const mockCourses: Course[] = [
+          {
+            id: '1',
+            title: 'Introduction to Web Development',
+            description: 'Learn the fundamentals of web development including HTML, CSS, and JavaScript. This course is perfect for beginners with no prior experience.',
+            rating: 4.8,
+            review_count: 124,
+            student_count: 1500,
+            duration_hours: 12,
+            difficulty_level: 'Beginner',
+            instructor_id: '1',
+            created_by: '1',
+            language: 'English',
+            has_certificate: true,
+            is_featured: true,
+            instructor_name: 'John Smith',
+            creator_name: 'Admin User',
+            duration: '12 hours',
+            level: 'Beginner',
+            category: 'Web Development',
+            image_url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&h=400&q=80',
+            reviews_count: 124
+          },
+          {
+            id: '2',
+            title: 'Advanced JavaScript Concepts',
+            description: 'Dive deep into advanced JavaScript concepts including closures, prototypes, async/await, and modern ES6+ features. Ideal for intermediate developers.',
+            rating: 4.7,
+            review_count: 98,
+            student_count: 850,
+            duration_hours: 15,
+            difficulty_level: 'Intermediate',
+            instructor_id: '1',
+            created_by: '1',
+            language: 'English',
+            has_certificate: true,
+            is_featured: false,
+            instructor_name: 'Jane Doe',
+            creator_name: 'Admin User',
+            duration: '15 hours',
+            level: 'Intermediate',
+            category: 'Web Development',
+            image_url: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&h=400&q=80',
+            reviews_count: 98
+          },
+          {
+            id: '3',
+            title: 'React for Beginners',
+            description: 'Learn React from scratch. Build modern, interactive UIs with the most popular JavaScript library. Includes hooks, context API, and more.',
+            rating: 4.9,
+            review_count: 210,
+            student_count: 2200,
+            duration_hours: 18,
+            difficulty_level: 'Beginner',
+            instructor_id: '1',
+            created_by: '1',
+            language: 'English',
+            has_certificate: true,
+            is_featured: true,
+            instructor_name: 'Alex Johnson',
+            creator_name: 'Admin User',
+            duration: '18 hours',
+            level: 'Beginner',
+            category: 'Web Development',
+            image_url: 'https://images.unsplash.com/photo-1633356122102-3fe601e05bd2?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&h=400&q=80',
+            reviews_count: 210
+          }
+        ];
+        setCourses(mockCourses);
+        return;
+      }
       
       // Transform the data to match our Course interface
-      const transformedCourses: Course[] = data?.map(course => ({
-        ...course,
-        instructor_name: course.users?.full_name || 'Unknown Instructor',
-        level: course.difficulty_level || 'All Levels',
-        // Convert duration_hours to a readable format
-        duration: course.duration_hours ? `${course.duration_hours} hours` : 'Self-paced',
-        // Use thumbnail_url or a fallback
-        image_url: course.thumbnail_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3',
-        // For now, use a default category until we add categories to the database
-        category: course.language === 'English' ? 'Web Development' : course.language,
-        reviews_count: course.review_count || 0
-      })) || []
+      const transformedCourses: Course[] = data.map(course => {
+        return {
+          ...course,
+          // The view already provides instructor_name and creator_name
+          level: course.difficulty_level || 'All Levels',
+          // Convert duration_hours to a readable format
+          duration: course.duration_hours ? `${course.duration_hours} hours` : 'Self-paced',
+          // Use thumbnail_url or a fallback
+          image_url: course.thumbnail_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3',
+          // For now, use language as a category until we add categories to the database
+          category: course.language || 'English',
+          reviews_count: course.review_count || 0
+        };
+      })
       
       setCourses(transformedCourses)
     } catch (err) {
@@ -161,8 +224,8 @@ export default function Courses() {
   const filteredCourses = courses
     .filter(course => {
       // Search filter
-      if (searchQuery && !course.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
-          !course.description.toLowerCase().includes(searchQuery.toLowerCase())) {
+      if (searchQuery && !course.title?.toLowerCase().includes(searchQuery.toLowerCase()) && 
+          !course.description?.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false
       }
       
@@ -172,7 +235,7 @@ export default function Courses() {
       }
       
       // Level filter
-      if (selectedLevel && course.level !== selectedLevel) {
+      if (selectedLevel && course.level !== selectedLevel && selectedLevel !== 'All Levels') {
         return false
       }
       
